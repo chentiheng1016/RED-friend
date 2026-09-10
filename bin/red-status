@@ -1,0 +1,28 @@
+#!/bin/bash
+# RED 統一控制台 — terminal 一行命令看系統狀態。
+#
+# 用法：
+#   ./bin/red-status              # 全部 7 section
+#   ./bin/red-status daemons      # 只看 daemon 健康
+#   ./bin/red-status cost,errors  # 看成本 + 錯誤 log
+#
+# 也可在 Telegram / REPL 內呼叫 `system_status()` tool 拿同樣輸出。
+
+set -e
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+REPO_ROOT="$( dirname "$SCRIPT_DIR" )"
+
+# 用 repo 內 .venv 的 python（同 bin/agent 模式），確保所有 import 對齊
+PYBIN="$REPO_ROOT/.venv/bin/python"
+if [ ! -x "$PYBIN" ]; then
+    echo "❌ 找不到 $PYBIN — 請先跑 setup.sh 建 venv"
+    exit 1
+fi
+
+cd "$REPO_ROOT"
+exec "$PYBIN" -c "
+import sys
+from agent_core.dashboard import system_status
+sections = sys.argv[1] if len(sys.argv) > 1 else ''
+print(system_status(sections))
+" "$@"

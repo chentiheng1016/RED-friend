@@ -1,0 +1,161 @@
+{
+  "task_name": "開發流程後續排程、完工回報與出貨作業",
+  "video_summary": "演示樣品單的排程設定、產能分配、完工回報、入庫出貨及扣款建立。",
+  "erp_name": "FAST ERP",
+  "prerequisites": "已登入系統，且位於主流程圖介面。",
+  "menu_path": "開發管理 → 樣品流程圖（包含：樣品排程、完工回報、入庫出貨、確認、DN/CN建立）",
+  "steps": [
+    {
+      "n": 1,
+      "action": "click",
+      "target_description": "流程圖中的「樣品排程日曆設定」按鈕",
+      "visual_cue": "樣品排程日曆設定",
+      "why": "進行排程前的基礎工作日曆設定"
+    },
+    {
+      "n": 2,
+      "action": "click",
+      "target_description": "畫面右上方的「產生工作日曆(F1)」按鈕",
+      "visual_cue": "產生工作日曆(F1)",
+      "why": "進入工作時間與休息日的批次產生視窗"
+    },
+    {
+      "n": 3,
+      "action": "fill",
+      "target_description": "視窗中的工作日期區間、週六/日休息設定及每日工時",
+      "visual_cue": "工作日期、休息日、一般日/休息日工時",
+      "example_value": "8小時",
+      "why": "定義工廠可生產的時間基礎"
+    },
+    {
+      "n": 4,
+      "action": "select",
+      "target_description": "大類產能設定頁籤中的鞋型大類與每日標準產能",
+      "visual_cue": "大類產能設定 頁籤",
+      "example_value": "10雙",
+      "why": "設定不同鞋型每日可生產的雙數參考"
+    },
+    {
+      "n": 5,
+      "action": "click",
+      "target_description": "流程圖中的「樣品生產排程」按鈕",
+      "visual_cue": "樣品生產排程",
+      "why": "進入實際的生產順序編排功能"
+    },
+    {
+      "n": 6,
+      "action": "fill",
+      "target_description": "樣品生產排程維護頁籤中的開始日期與標準產能，並點擊樣品單匯入(F2)",
+      "visual_cue": "樣品生產排程維護 頁籤 -> 樣品單匯入(F2)",
+      "why": "從現有的樣品清單中匯入待排程資料"
+    },
+    {
+      "n": 7,
+      "action": "fill",
+      "target_description": "清單中的「生產序」欄位，使用小數點插入順序，並點擊「重新產生序號」",
+      "visual_cue": "生產序 欄位",
+      "example_value": "2.1",
+      "why": "靈活調整生產優先順序"
+    },
+    {
+      "n": 8,
+      "action": "click",
+      "target_description": "流程圖中的「樣品單完工回報」按鈕",
+      "visual_cue": "樣品單完工回報",
+      "why": "回報樣品實際做好的數量與階段"
+    },
+    {
+      "n": 9,
+      "action": "select",
+      "target_description": "回報頁面中的「完工項目」 (鞋面或整雙) 及樣品單號",
+      "visual_cue": "完工項目 (下拉選單)",
+      "why": "按階段回報進度，需先回報鞋面完工才能回報整雙完工"
+    },
+    {
+      "n": 10,
+      "action": "click",
+      "target_description": "流程圖中的「樣品單入庫出貨」按鈕",
+      "visual_cue": "樣品單入庫出貨",
+      "why": "樣品做好後執行出貨與庫存扣減手續"
+    },
+    {
+      "n": 11,
+      "action": "fill",
+      "target_description": "出貨維護頁籤中的出貨日期、方式、客戶及提單號碼",
+      "visual_cue": "商品出貨資料維護 頁籤",
+      "why": "建立出貨單表頭資訊"
+    },
+    {
+      "n": 12,
+      "action": "click",
+      "target_description": "點擊「選擇樣品單(F2)」勾選欲出貨品項，並點擊「生效(F3)」與「出貨(F4)」",
+      "visual_cue": "選擇樣品單(F2) -> 生效(F3) -> 出貨(F4)",
+      "why": "完成入庫並同步執行出貨轉帳扣庫存"
+    },
+    {
+      "n": 13,
+      "action": "click",
+      "target_description": "流程圖中的「內部/客戶確認」按鈕",
+      "visual_cue": "內部/客戶確認",
+      "why": "記錄客戶收到樣品後的確認結果"
+    },
+    {
+      "n": 14,
+      "action": "fill",
+      "target_description": "確認回報頁籤中，若狀態為 NG 則填寫不良原因，點擊「客戶確認(F3)」",
+      "visual_cue": "內部客戶確認回報 頁籤",
+      "why": "回報檢驗結果；若 NG 系統會詢問是否自動重新產生一張新樣品單"
+    },
+    {
+      "n": 15,
+      "action": "click",
+      "target_description": "流程圖中的「客戶DN/CN建立」按鈕",
+      "visual_cue": "客戶DN/CN建立",
+      "why": "樣品如需收費，在此建立帳單資料"
+    }
+  ],
+  "fields_schema": {
+    "出貨日期": {
+      "type": "date",
+      "required": true,
+      "example": "2022-03-29"
+    },
+    "出貨方式": {
+      "type": "select",
+      "required": true,
+      "example": "海運"
+    },
+    "提單號碼": {
+      "type": "string",
+      "required": true,
+      "example": "BL12345678"
+    },
+    "完工數量": {
+      "type": "number",
+      "required": true,
+      "example": "5",
+      "notes": "分 Size 輸入"
+    },
+    "確認結果": {
+      "type": "select",
+      "required": true,
+      "example": "NG",
+      "notes": "若選擇 NG 需填不良原因"
+    }
+  },
+  "validation": "單據狀態變更為「生效」或「Complete」，且在樣品確認查詢中能看到反寫的檢驗結果。",
+  "common_pitfalls": [
+    "若找不到樣品單，請檢查該單據狀態是否已結案或已取消。",
+    "出貨前必須完成樣品單的完工回報，否則會因無庫存導致出貨失敗。",
+    "建立 DN/CN 時，季節、小組、客戶三個條件必須與樣品單完全一致。"
+  ],
+  "narrator_tips": [
+    "完工回報具有先後順序，必須先報鞋面，才能報整雙。",
+    "排程時使用小數點編號（如2.1）可以在兩筆訂單間快速插入急單。",
+    "整雙回報生效後，系統會自動將樣品單的 BOM 資料帶入到形體主檔中。",
+    "出貨資料中的藍色字體欄位，在生效後仍可透過「出貨資料修改」按鈕變更。"
+  ],
+  "_video_name": "生產排程到客戶DNCN.mp4",
+  "_video_path": "開發部教學",
+  "_video_index": 9
+}

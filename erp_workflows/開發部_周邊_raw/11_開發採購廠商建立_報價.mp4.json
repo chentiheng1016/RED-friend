@@ -1,0 +1,152 @@
+{
+  "task_name": "開發採購廠商與材料報價單建立",
+  "video_summary": "建立開發採購廠商基本資料、報價單，並利用參考建立功能快速複製單價。",
+  "erp_name": "FAST ERP",
+  "prerequisites": "已登入系統，且在「開發管理」主畫面分頁中。",
+  "menu_path": "主選單 → 開發管理 → 開發採購廠商建立 / 開發材料報價單建立",
+  "steps": [
+    {
+      "n": 1,
+      "action": "click",
+      "target_description": "主畫面中央偏右上方的「開發採購廠商建立」按鈕",
+      "visual_cue": "開發採購廠商建立",
+      "why": "進入廠商資料維護功能"
+    },
+    {
+      "n": 2,
+      "action": "click",
+      "target_description": "工具列左上方的綠色「插入記錄」按鈕",
+      "visual_cue": "綠色加號/文件圖示",
+      "why": "開始建立新廠商"
+    },
+    {
+      "n": 3,
+      "action": "fill",
+      "target_description": "填寫廠商標示碼、廠商類別(開窗選擇)、中文名稱、全稱、幣別、稅種、採購小組、賬務員等紅色標籤欄位",
+      "visual_cue": "紅色文字標籤",
+      "example_value": "FA (廠商標示碼)",
+      "why": "建立廠商核心資料，紅色為必填項目"
+    },
+    {
+      "n": 4,
+      "action": "click",
+      "target_description": "工具列上方的「儲存」按鈕",
+      "visual_cue": "磁碟片圖示",
+      "why": "保存廠商資料"
+    },
+    {
+      "n": 5,
+      "action": "click",
+      "target_description": "畫面中間上方的「廠商複核」按鈕",
+      "visual_cue": "廠商複核",
+      "why": "使廠商資料正式生效，以便後續採購單選用"
+    },
+    {
+      "n": 6,
+      "action": "click",
+      "target_description": "返回主選單點擊「開發材料報價單建立」",
+      "visual_cue": "開發材料報價單建立",
+      "why": "開始建立材料單價資訊"
+    },
+    {
+      "n": 7,
+      "action": "click",
+      "target_description": "畫面中上方的「新增」按鈕",
+      "visual_cue": "新增",
+      "why": "新增一筆報價單頭"
+    },
+    {
+      "n": 8,
+      "action": "fill",
+      "target_description": "選擇「報價廠商」並輸入「報價日期」後點擊「儲存」",
+      "visual_cue": "報價廠商、報價日期 (紅色欄位)",
+      "why": "產生報價單號"
+    },
+    {
+      "n": 9,
+      "action": "click",
+      "target_description": "下方明細列表左側的「+」新增明細按鈕",
+      "visual_cue": "綠色加號",
+      "why": "填寫具體材料的報價內容"
+    },
+    {
+      "n": 10,
+      "action": "fill",
+      "target_description": "填寫材料編號、生效日期、截止日期(若無則留空)、報價單價、樣品單價",
+      "visual_cue": "材料編號、生效日期、報價單價",
+      "why": "設定材料的採購成本"
+    },
+    {
+      "n": 11,
+      "action": "click",
+      "target_description": "畫面右上方的「報價單生效」按鈕",
+      "visual_cue": "報價單生效",
+      "why": "鎖定報價單，完成建立"
+    },
+    {
+      "n": 12,
+      "action": "click",
+      "target_description": "主選單「開發材料報價參考建立」",
+      "visual_cue": "開發材料報價參考建立",
+      "why": "快速將報價複製到同材料不同顏色的料號上"
+    },
+    {
+      "n": 13,
+      "action": "fill",
+      "target_description": "選擇來源材料、目標材料，並可設定倍數",
+      "visual_cue": "單一建立 / 批次設定",
+      "example_value": "1.2 (倍數)",
+      "why": "節省重複錄入報價單的時間"
+    }
+  ],
+  "fields_schema": {
+    "廠商標示碼": {
+      "type": "string",
+      "required": true,
+      "example": "FA",
+      "notes": "控制在兩碼"
+    },
+    "廠商類別": {
+      "type": "string",
+      "required": true,
+      "example": "布料廠"
+    },
+    "稅種": {
+      "type": "string",
+      "required": true,
+      "example": "普通發票",
+      "notes": "影響後續付款稅率計算"
+    },
+    "採購小組": {
+      "type": "string",
+      "required": true,
+      "example": "面料小組",
+      "notes": "權限控管，僅該組成員可維護資料"
+    },
+    "報價廠商": {
+      "type": "string",
+      "required": true,
+      "example": "C1001"
+    },
+    "報價單價": {
+      "type": "number",
+      "required": true,
+      "example": "20"
+    }
+  },
+  "validation": "點擊「儲存」後系統自動編號，且點擊「報價單生效」後狀態顯示為生效且不可修改。",
+  "common_pitfalls": [
+    "若開發廠商已生效但量產廠商狀態未生效，在量產下採購單時會找不到廠商。",
+    "稅種若選擇「海關發票」等類型，系統可能不會進行稅率計算，須特別留意。",
+    "截止日期若輸入，該單價到期後會自動失效。"
+  ],
+  "narrator_tips": [
+    "紅色標籤欄位代表必填項。",
+    "採購小組具有權限控管功能，若使用者不屬於該小組則無法維護該廠商資料。",
+    "「報價參考建立」非常適合處理同物料多顏色且價格一致（或成倍數關係）的情況。",
+    "報價單一旦生效便無法修改，若需調整必須重新報價並壓蓋日期。"
+  ],
+  "_video_name": "開發採購廠商建立&報價.mp4",
+  "_video_path": "開發部教學",
+  "_video_index": 11
+}

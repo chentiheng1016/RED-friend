@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.xiaohong.tool_rpc</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>@@REPO_ROOT@@/.venv/bin/python</string>
+        <string>@@REPO_ROOT@@/launchd/scripts/tool_rpc.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>@@REPO_ROOT@@</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>StandardOutPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-tool_rpc.log</string>
+    <key>StandardErrorPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-tool_rpc.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- 走共用 chroma server，勿開 embedded PersistentClient(會與 server 搶同一份 HNSW 索引→SIGSEGV) -->
+        <key>RED_CHROMA_HTTP_URL</key>
+        <string>http://127.0.0.1:8000</string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+        <key>RED_TOOL_RPC_FALLBACK_DIRECT</key>
+        <string>1</string>
+        <key>RED_TOOL_RPC_DEFAULT_TIMEOUT_S</key>
+        <string>300</string>
+        <key>RED_TOOL_WORKER_TIMEOUT_S</key>
+        <string>300</string>
+        <key>RED_TOOL_WORKER_CANCEL_TERM_GRACE_S</key>
+        <string>2</string>
+        <key>RED_TOOL_WORKER_KILL_GRACE_S</key>
+        <string>2</string>
+        <key>RED_EMBED_DIM</key>
+        <string>768</string>
+    </dict>
+</dict>
+</plist>

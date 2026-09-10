@@ -1,0 +1,13 @@
+# Spreadsheet / PDF / document workflows.
+# Pinned (==) to validated versions for reproducible CI; dependabot bumps them.
+openpyxl==3.1.5
+xlrd==2.0.2
+olefile==0.47
+pypdf==6.16.2
+pdfplumber==0.11.10
+pypdfium2==5.12.1
+reportlab==5.0.0
+python-docx==1.2.0
+# drive_sync._extract_pptx 的相依。之前漏列：venv 沒裝時每晚對每個 .pptx
+# 重下載 → ModuleNotFoundError →（非永久性錯誤不記 skip-marker）明晚再炸一次。
+python-pptx==1.0.2

@@ -1,0 +1,9 @@
+# Desktop automation / screenshots / OCR / browser automation.
+mss>=10.2.0
+pygetwindow>=0.0.9
+pyautogui>=0.9.54
+pyobjc-framework-ApplicationServices
+pyobjc-framework-Cocoa
+opencv-python-headless
+pytesseract
+playwright>=1.61.0

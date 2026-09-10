@@ -1,0 +1,12 @@
+# Retrieval / memory stores.
+# Pinned: unpinned `chromadb` made CI install whatever's latest (non-reproducible)
+# and tripped pip-audit on CVE-2026-45829. 1.5.9 is the version actually deployed
+# (com.xiaohong.chroma launchd server) and validated locally — it is also the
+# latest release, so there is nothing to upgrade to. Four CVEs (45829/45830/
+# 45831/45833) are suppressed in Makefile: none has an upstream fix, and each
+# needs authn or multi-tenancy that this deployment does not have (our server
+# binds 127.0.0.1 only, with no auth provider and a single tenant). See the
+# CHROMADB_CVE_IGNORE block in Makefile for the per-CVE reasoning; bump + drop
+# the --ignore-vuln entries once a patched chromadb ships.
+chromadb==1.5.9
+rank_bm25==0.2.2

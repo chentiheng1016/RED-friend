@@ -1,0 +1,139 @@
+{
+  "task_name": "開發部_周邊操作（採購單建立、需求彙總與基礎資料維護）",
+  "video_summary": "教授手工採購單建立、樣品需求彙總轉採購、材料報價與廠商維護。",
+  "erp_name": "FAST ERP (Oracle)",
+  "prerequisites": "已登入系統，擁有開發管理與採購維護權限。",
+  "menu_path": "主功能選單 → 開發管理 → 手工採購單建立 / 樣品單建立 / 開發基礎資料",
+  "steps": [
+    {
+      "n": 1,
+      "action": "click",
+      "target_description": "主選單中的「手工採購單建立」圖示",
+      "visual_cue": "手工採購單建立",
+      "why": "開始手工建立採購訂單"
+    },
+    {
+      "n": 2,
+      "action": "click",
+      "target_description": "工具列左上方的「新增」按鈕",
+      "visual_cue": "白色文件圖示",
+      "why": "新增一筆空白採購單"
+    },
+    {
+      "n": 3,
+      "action": "select",
+      "target_description": "廠商代號欄位旁的開窗按鈕",
+      "visual_cue": "廠商代號",
+      "example_value": "A001",
+      "why": "選擇供應商"
+    },
+    {
+      "n": 4,
+      "action": "select",
+      "target_description": "料件編碼欄位的開窗鈕或按 F9",
+      "visual_cue": "料件編碼",
+      "why": "從料件清單中勾選欲採購的材料"
+    },
+    {
+      "n": 5,
+      "action": "fill",
+      "target_description": "下方明細中的「採購數量」欄位",
+      "visual_cue": "採購數量",
+      "example_value": "20",
+      "why": "指定採購數量"
+    },
+    {
+      "n": 6,
+      "action": "click",
+      "target_description": "畫面右上方或工具列的「生效」按鈕",
+      "visual_cue": "生效",
+      "why": "將採購單轉為正式生效狀態以利後續列印"
+    },
+    {
+      "n": 7,
+      "action": "click",
+      "target_description": "選單中的「樣品單建立」",
+      "visual_cue": "樣品單建立",
+      "why": "處理從樣品需求轉採購的流程"
+    },
+    {
+      "n": 8,
+      "action": "click",
+      "target_description": "勾選清單中的多筆樣品單，並點擊「轉需求彙總」按鈕",
+      "visual_cue": "轉需求彙總",
+      "why": "將多張樣品單的材料需求合併彙總"
+    },
+    {
+      "n": 9,
+      "action": "click",
+      "target_description": "開發基礎資料選單中的「開發材料報價建立」",
+      "visual_cue": "開發材料報價建立",
+      "why": "建立供應商的材料單價資訊"
+    },
+    {
+      "n": 10,
+      "action": "fill",
+      "target_description": "報價明細中的單價、生效日期與貿易條件",
+      "visual_cue": "單價、生效日期、貿易條件",
+      "example_value": "單價：4.2, 生效日期：20220601",
+      "why": "設定報價內容。生效日期需早於採購單下單日方能自動帶入價格。"
+    },
+    {
+      "n": 11,
+      "action": "click",
+      "target_description": "畫面上的「批次設定」按鈕",
+      "visual_cue": "批次設定",
+      "why": "快速將相同料號但不同顏色的材料設定為同一報價"
+    },
+    {
+      "n": 12,
+      "action": "click",
+      "target_description": "開發基礎資料選單中的「開發採購廠商建立」",
+      "visual_cue": "開發採購廠商建立",
+      "why": "新增或維護廠商基本資料與貿易條件"
+    }
+  ],
+  "fields_schema": {
+    "廠商標示碼": {
+      "type": "string",
+      "required": true,
+      "notes": "自定義廠商前兩碼縮寫"
+    },
+    "廠商類型": {
+      "type": "select",
+      "required": true,
+      "example": "鞋材"
+    },
+    "廠商中文名稱": {
+      "type": "string",
+      "required": true
+    },
+    "幣別": {
+      "type": "select",
+      "required": true,
+      "example": "VND"
+    },
+    "貿易條件": {
+      "type": "select",
+      "required": true,
+      "example": "D-DOOR"
+    },
+    "單價": {
+      "type": "number",
+      "required": true,
+      "example": "12.0"
+    }
+  },
+  "validation": "採購單生效後狀態顯示為「已生效」，且在查詢頁面可點擊列印產生 PDF 報表。",
+  "common_pitfalls": [
+    "廠商貿易條件（付款方式、貿易條件、運輸方式）未填寫完整，會導致需求彙總無法轉採購單。",
+    "材料報價的「生效日期」若晚於採購單下單日期，單價將無法自動帶入明細。"
+  ],
+  "narrator_tips": [
+    "在報價建立時，可以使用「批次設定」功能參考已報價的料號，快速勾選其他顏色同步單價。",
+    "廠商資料中，紅色標籤的欄位為必填項。",
+    "如果需要給廠商看特定名稱，可在報價單的「廠商料名」欄位進行修改。"
+  ],
+  "_video_name": "8.16開發採購廠商&開發報價.mp4 (第 2/2 段)",
+  "_split_part": 2
+}

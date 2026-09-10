@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.xiaohong.cloudflare_tunnel</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>@@REPO_ROOT@@/.venv/bin/python</string>
+        <string>@@REPO_ROOT@@/launchd/scripts/cloudflare_tunnel.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>@@REPO_ROOT@@</string>
+
+    <!-- 預設關閉：避免 Quick Tunnel / Named Tunnel 網路抖動時洗爆 log。
+         需要公開入口時，手動 launchctl start com.xiaohong.cloudflare_tunnel
+         或暫時把 RunAtLoad/KeepAlive 改回 true 後 redeploy。 -->
+    <key>RunAtLoad</key>
+    <false/>
+    <key>KeepAlive</key>
+    <false/>
+
+    <!-- 手動啟動後若 process 立刻退出，launchd 仍套用節流保護。 -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>StandardOutPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-cloudflare_tunnel.log</string>
+    <key>StandardErrorPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-cloudflare_tunnel.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- 走共用 chroma server，勿開 embedded PersistentClient(會與 server 搶同一份 HNSW 索引→SIGSEGV) -->
+        <key>RED_CHROMA_HTTP_URL</key>
+        <string>http://127.0.0.1:8000</string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+        <key>AGENT_DAEMON_MODE</key>
+        <string>1</string>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+        <!-- Named Tunnel：hostname 在這填（公開資訊），token 由 cloudflare_tunnel.py
+             從 macOS keyring 讀取（service=xiaohong-agent, user=cloudflare-tunnel-token）。
+             這個 plist 進 git，所以 secret 不能寫進來；mirror telegram-bot-token 的做法。
+             hostname 缺則自動 fallback 到 Quick Tunnel。
+             CLOUDFLARE_TUNNEL_TOKEN — 留空（從 keyring 讀），用 env 可覆寫
+             CLOUDFLARE_TUNNEL_HOSTNAME — 公開網址 -->
+        <key>CLOUDFLARE_TUNNEL_TOKEN</key>
+        <string></string>
+        <key>CLOUDFLARE_TUNNEL_HOSTNAME</key>
+        <string>portal.company.example</string>
+        <key>RED_EMBED_DIM</key>
+        <string>768</string>
+    </dict>
+</dict>
+</plist>

@@ -1,0 +1,138 @@
+{
+  "task_name": "開發料品基礎資料與編碼建立",
+  "video_summary": "教授開發材料的編碼規則設定、主檔資料建立及參數管控流程。",
+  "erp_name": "FAST ERP",
+  "prerequisites": "已登入系統並進入「開發管理」模組之「基礎資料」頁籤。",
+  "menu_path": "主選單 → 開發管理 → 基礎資料",
+  "steps": [
+    {
+      "n": 1,
+      "action": "click",
+      "target_description": "左側「基礎資料」頁籤中的第一個按鈕「開發料品編碼規則建立」",
+      "visual_cue": "開發料品編碼規則建立",
+      "why": "設定材料的自動編碼規則，以便後續建立料件時選取"
+    },
+    {
+      "n": 2,
+      "action": "click",
+      "target_description": "畫面上方工具列的「插入記錄」按鈕",
+      "visual_cue": "綠色「+」圖示",
+      "why": "在主畫面區域新增一筆材料大類編碼規則"
+    },
+    {
+      "n": 3,
+      "action": "fill",
+      "target_description": "主畫面區域的第一欄「代碼」與「名稱」欄位",
+      "visual_cue": "大類代碼、名稱(中文)",
+      "example_value": "A1, 牛皮",
+      "why": "定義材料大類的編碼與名稱"
+    },
+    {
+      "n": 4,
+      "action": "select",
+      "target_description": "中間區域的「編碼方式」下拉選單",
+      "visual_cue": "編碼方式",
+      "example_value": "列表選擇",
+      "why": "決定該層次代碼是手動輸入、流水號還是從清單選取"
+    },
+    {
+      "n": 5,
+      "action": "click",
+      "target_description": "畫面上方工具列的「保存」按鈕",
+      "visual_cue": "磁碟片圖示",
+      "why": "儲存編碼規則設定"
+    },
+    {
+      "n": 6,
+      "action": "click",
+      "target_description": "左側「基礎資料」頁籤中的第二個按鈕「開發料品基礎資料建立」",
+      "visual_cue": "開發料品基礎資料建立",
+      "why": "進入材料主檔建立畫面"
+    },
+    {
+      "n": 7,
+      "action": "click",
+      "target_description": "畫面中間偏上的「編新料號」按鈕",
+      "visual_cue": "編新料號",
+      "why": "開始編寫新的材料代碼"
+    },
+    {
+      "n": 8,
+      "action": "click",
+      "target_description": "彈出視窗中的「一般材料」按鈕",
+      "visual_cue": "一般材料",
+      "why": "選擇建立一般類型的開發材料"
+    },
+    {
+      "n": 9,
+      "action": "fill",
+      "target_description": "下方的單位設定欄位，包含「庫存單位」、「BOM單位」等",
+      "visual_cue": "單位名稱",
+      "example_value": "Y",
+      "why": "設定材料的庫存與採購計量單位"
+    },
+    {
+      "n": 10,
+      "action": "fill",
+      "target_description": "單位換算率欄位",
+      "visual_cue": "換算率",
+      "example_value": "3000",
+      "why": "若採購單位與領用單位不同（如一捲3000碼），需設定換算倍率"
+    },
+    {
+      "n": 11,
+      "action": "click",
+      "target_description": "畫面上方的「材料編碼生效」按鈕",
+      "visual_cue": "材料編碼生效 (F3)",
+      "why": "確認資料無誤後使料號正式生效，方可在系統其他功能中被選取"
+    },
+    {
+      "n": 12,
+      "action": "click",
+      "target_description": "左側「基礎資料」頁籤中的第三個按鈕「開發材料參數設定」",
+      "visual_cue": "開發材料參數設定",
+      "why": "設定各類材料的領料管控與庫存管制方式"
+    }
+  ],
+  "fields_schema": {
+    "大類代碼": {
+      "type": "string",
+      "required": true,
+      "example": "A1"
+    },
+    "層次": {
+      "type": "integer",
+      "required": true,
+      "example": "5"
+    },
+    "庫存單位": {
+      "type": "string",
+      "required": true,
+      "example": "Y"
+    },
+    "換算率": {
+      "type": "number",
+      "required": false,
+      "example": "1"
+    },
+    "管控方式": {
+      "type": "string",
+      "required": true,
+      "example": "1.BY客戶"
+    }
+  },
+  "validation": "當按下「生效」按鈕後，該料號的狀態應變更為「生效」，且出現在首頁的查詢清單中。",
+  "common_pitfalls": [
+    "若為加工材料，必須選擇有帶顏色的子料號，不能選擇沒有顏色的主料號。",
+    "上傳圖片時，檔案大小必須小於 500K 才能成功存入伺服器。",
+    "修改已生效的資料前，必須先點擊「生效材料修改」按鈕解鎖欄位。"
+  ],
+  "narrator_tips": [
+    "編碼規則中的「名稱次序」會決定最後組合出的材料名稱顯示順序。",
+    "加工材料的料號編碼通常帶有兩個橫槓（-），可用於快速識別。",
+    "若用量極小（小於小數點四位），建議利用「底數」欄位輔助計算。"
+  ],
+  "_video_name": "開發材料建立.mp4",
+  "_video_path": "開發部教學",
+  "_video_index": 12
+}

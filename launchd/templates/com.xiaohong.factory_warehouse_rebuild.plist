@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.xiaohong.factory_warehouse_rebuild</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>@@REPO_ROOT@@/.venv/bin/python</string>
+        <string>@@REPO_ROOT@@/launchd/scripts/factory_warehouse_rebuild.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>@@REPO_ROOT@@</string>
+
+    <!-- 每天 07:00（開工：截至昨天的完整快照）+ 12:30（當天日報多 8–11 點才到，
+         進來後再刷一次）。陣列 = 兩個觸發時間，同一個 daemon。 -->
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict>
+            <key>Hour</key>
+            <integer>7</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>12</integer>
+            <key>Minute</key>
+            <integer>30</integer>
+        </dict>
+    </array>
+
+    <key>StandardOutPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-factory_warehouse_rebuild.log</string>
+    <key>StandardErrorPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-factory_warehouse_rebuild.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+        <key>RED_CHROMA_HTTP_URL</key>
+        <string>http://127.0.0.1:8000</string>
+        <key>RED_EMBED_DIM</key>
+        <string>768</string>
+    </dict>
+
+    <!-- 純 calendar 觸發、不 RunAtLoad（bootstrap 時不會立刻跑一輪）。
+         無 KeepAlive：失敗不自動重啟，下個 calendar tick（12:30 或隔天 07:00）自然重試，
+         倉缺檔時查詢工具也會 lazy 自建兜底。 -->
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>

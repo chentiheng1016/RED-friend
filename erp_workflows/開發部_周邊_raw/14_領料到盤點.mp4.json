@@ -1,0 +1,178 @@
+{
+  "task_name": "開發部周邊作業（領料與盤點）",
+  "video_summary": "示範開發領料單建立、樣品彙總領料、以及材料盤點調整流程。",
+  "erp_name": "FAST ERP",
+  "prerequisites": "已登入系統，並在「開發管理」功能選單頁面。",
+  "menu_path": "主選單 → 開發管理 → [開發領料建立 / 開發材料盤點]",
+  "steps": [
+    {
+      "n": 1,
+      "action": "click",
+      "target_description": "功能選單中的「開發領料建立」按鈕",
+      "visual_cue": "開發領料建立",
+      "why": "進入開發領料單據編輯畫面"
+    },
+    {
+      "n": 2,
+      "action": "click",
+      "target_description": "頂部工具列的綠色加號「插入記錄」按鈕",
+      "visual_cue": "綠色加號圖示",
+      "why": "新增一筆空白領料單"
+    },
+    {
+      "n": 3,
+      "action": "select",
+      "target_description": "單據標頭的「倉庫代號」下拉選單",
+      "visual_cue": "倉庫代號",
+      "example_value": "AA 開發管理倉",
+      "why": "指定從哪個倉庫領料"
+    },
+    {
+      "n": 4,
+      "action": "select",
+      "target_description": "單據標頭的「異動類別」下拉選單",
+      "visual_cue": "異動類別",
+      "example_value": "D01 開發領料",
+      "why": "定義庫存異動性質"
+    },
+    {
+      "n": 5,
+      "action": "select",
+      "target_description": "「單據類別」下拉選單",
+      "visual_cue": "單據類別",
+      "example_value": "領料",
+      "why": "區分領料、退料或補料"
+    },
+    {
+      "n": 6,
+      "action": "click",
+      "target_description": "畫面中間右側的「彙總樣品用量」按鈕",
+      "visual_cue": "彙總樣品用量",
+      "why": "依據樣品單自動帶入所需材料資訊"
+    },
+    {
+      "n": 7,
+      "action": "fill",
+      "target_description": "彈出視窗中的「樣品單號」欄位並查詢勾選",
+      "visual_cue": "樣品單號",
+      "example_value": "SR22030001",
+      "why": "選取要領料的樣品單據"
+    },
+    {
+      "n": 8,
+      "action": "click",
+      "target_description": "單據右方的「覆核」按鈕",
+      "visual_cue": "覆核(F)",
+      "why": "確認領料申請內容"
+    },
+    {
+      "n": 9,
+      "action": "fill",
+      "target_description": "材料明細中的「實發數量」欄位",
+      "visual_cue": "實發數量",
+      "example_value": "20",
+      "why": "輸入實際發放的材料數量"
+    },
+    {
+      "n": 10,
+      "action": "click",
+      "target_description": "單據右方的「銷帳」按鈕",
+      "visual_cue": "銷帳(P)",
+      "why": "執行庫存扣帳，完成領料"
+    },
+    {
+      "n": 11,
+      "action": "click",
+      "target_description": "返回開發管理選單，點選「開發材料盤點」",
+      "visual_cue": "開發材料盤點",
+      "why": "進入盤點作業畫面"
+    },
+    {
+      "n": 12,
+      "action": "click",
+      "target_description": "頂部工具列「插入記錄」按鈕後，輸入倉庫與日期",
+      "visual_cue": "綠色加號 / 預計盤點日期",
+      "why": "建立新的盤點計劃單"
+    },
+    {
+      "n": 13,
+      "action": "click",
+      "target_description": "標頭右側的「產生盤點單」按鈕",
+      "visual_cue": "產生盤點單",
+      "why": "系統抓取目前帳面庫存產生明細"
+    },
+    {
+      "n": 14,
+      "action": "fill",
+      "target_description": "明細頁籤中的「實盤數量」欄位",
+      "visual_cue": "實盤數量",
+      "why": "輸入現場實際清點的數量"
+    },
+    {
+      "n": 15,
+      "action": "click",
+      "target_description": "「盤盈虧計算」按鈕",
+      "visual_cue": "盤盈虧計算(%)",
+      "why": "計算帳面數與實盤數的差異"
+    },
+    {
+      "n": 16,
+      "action": "click",
+      "target_description": "「盤盈虧調整」按鈕",
+      "visual_cue": "盤盈虧調整(S)",
+      "why": "正式更新庫存帳面資料，使其與實盤相符"
+    }
+  ],
+  "fields_schema": {
+    "倉庫代號": {
+      "type": "string",
+      "required": true,
+      "example": "AA"
+    },
+    "異動類別": {
+      "type": "string",
+      "required": true,
+      "example": "D01"
+    },
+    "單據類別": {
+      "type": "string",
+      "required": true,
+      "example": "領料"
+    },
+    "樣品單號": {
+      "type": "string",
+      "required": false,
+      "notes": "彙總樣品用量時使用"
+    },
+    "實發數量": {
+      "type": "number",
+      "required": true,
+      "example": 10
+    },
+    "預計盤點日期": {
+      "type": "date",
+      "required": true,
+      "example": "2022/03/25"
+    },
+    "實盤數量": {
+      "type": "number",
+      "required": true,
+      "example": 15
+    }
+  },
+  "validation": "在「開發材料庫存查詢」中，可看到材料庫存量隨領料或盤點調整而變動。",
+  "common_pitfalls": [
+    "領料單若未執行『銷帳』，庫存並不會實際扣除。",
+    "盤點單產生後不可返回，務必確認範圍與日期正確。",
+    "分 Size 的材料必須進入專屬的小視窗維護數量。"
+  ],
+  "narrator_tips": [
+    "若樣品單建立了但沒有料號，需在領料前補上料號，否則庫存無法管理。",
+    "『彙總樣品用量』支援一次選取多張樣品單合併領料。",
+    "樣品領料通常是一次性完成，系統設計不建議分批領料。",
+    "盤盈虧調整會直接修改帳載庫存，操作前需特別謹慎。"
+  ],
+  "_video_name": "領料到盤點.mp4",
+  "_video_path": "開發部教學",
+  "_video_index": 14
+}

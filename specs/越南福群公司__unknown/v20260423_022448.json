@@ -1,0 +1,52 @@
+{
+  "customer": "越南福群公司",
+  "product_model": "unknown",
+  "document_date": "2025-01-10",
+  "document_version": "20250108-華泰",
+  "specs": {
+    "upper": null,
+    "outsole": null,
+    "midsole": null,
+    "lining": null,
+    "insole": null,
+    "laces": null,
+    "eyelets": null,
+    "sizing": null,
+    "packaging": null,
+    "labeling": null,
+    "performance_requirements": null,
+    "quality_standards": []
+  },
+  "tolerances": {},
+  "critical_notes": [
+    "此文件為會計部匯款通知單，非技術規格書",
+    "內容涉及借用美金 30,000 元之還款指示",
+    "要求將款項平均匯入三個指定之台幣帳戶"
+  ],
+  "extra": {
+    "document_type": "Remittance Notice",
+    "department": "會計部",
+    "loan_amount_usd": 30000,
+    "loan_date": "2025-01-08",
+    "bank_accounts": [
+      {
+        "account_name": "黃秀菊",
+        "account_number": "02881027674300",
+        "bank_name": "台北富邦"
+      },
+      {
+        "account_name": "彭鈺茹",
+        "branch_code": "0061035",
+        "account_number": "0144877"
+      },
+      {
+        "account_name": "彭鈺荃",
+        "branch_code": "0061035",
+        "account_number": "0159441"
+      }
+    ],
+    "signer": "張婉蘭"
+  },
+  "parsed_at": "2026-04-23T02:24:48",
+  "source_file": "/Users/user/Downloads/匯款通知單20250108-華泰.pdf"
+}

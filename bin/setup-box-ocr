@@ -1,0 +1,54 @@
+#!/bin/bash
+# setup-box-ocr — 建立外箱嘜頭 OCR 專用 venv 並預熱模型（PP-OCRv6 medium, onnxruntime）。
+#
+# 為什麼獨立 venv：paddlex 會把 numpy 降到 <2.4、又拉 opencv-contrib-python
+# 跟主 .venv 的 opencv-python-headless 互踩 —— 裝進共用 venv 會動搖全艦隊。
+# 詳見 requirements-box-ocr.txt 註解。
+#
+# 用法：
+#   ./bin/setup-box-ocr            # 建 venv + 裝依賴 + 預熱模型 + 冒煙測試
+#   RED_RUNTIME_DIR=... 可改 var 根（與 logging_and_paths 同一約定）
+#
+# 完成後 skill（read_box_shipping_marks）自動使用：
+#   ${RED_RUNTIME_DIR:-$REPO/var}/venvs/box_ocr/bin/python
+# 亦可用 RED_BOX_OCR_PYTHON 顯式指定直譯器。
+
+set -euo pipefail
+
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
+RUNTIME_ROOT="${RED_RUNTIME_DIR:-$REPO/var}"
+VENV_DIR="$RUNTIME_ROOT/venvs/box_ocr"
+PYTHON_BIN="${RED_BOX_OCR_BASE_PYTHON:-$(command -v python3.12 || command -v python3)}"
+
+echo "▶️ box-ocr venv: $VENV_DIR (base: $PYTHON_BIN)"
+mkdir -p "$RUNTIME_ROOT/venvs"
+if [ ! -x "$VENV_DIR/bin/python" ]; then
+    "$PYTHON_BIN" -m venv "$VENV_DIR"
+fi
+"$VENV_DIR/bin/pip" install --quiet --upgrade pip
+"$VENV_DIR/bin/pip" install --quiet -r "$REPO/requirements-box-ocr.txt"
+
+# 冒煙 + 模型預熱：合成小圖跑一輪，首跑會下載 ~133MB 模型到
+# ~/.paddlex/official_models/（之後 daemon 執行期不需外網）。
+SMOKE_TMP="$(mktemp -t box_ocr_smoke)"
+SMOKE_IMG="${SMOKE_TMP}.png"
+trap 'rm -f "${SMOKE_TMP}" "${SMOKE_IMG}"' EXIT
+"$VENV_DIR/bin/python" - "$SMOKE_IMG" <<'PYEOF'
+import sys
+from PIL import Image, ImageDraw
+im = Image.new("RGB", (320, 120), (210, 175, 130))
+d = ImageDraw.Draw(im)
+d.text((40, 30), "TEST 123", fill=(30, 30, 30))
+im.save(sys.argv[1])
+PYEOF
+
+OUT="$("$VENV_DIR/bin/python" "$REPO/scripts/box_ocr_runner.py" "$SMOKE_IMG" | tail -1)"
+case "$OUT" in
+    RESULT_JSON:*'"ok": true'*)
+        echo "✅ box-ocr venv 就緒，模型已預熱（PP-OCRv6 medium / onnxruntime）"
+        ;;
+    *)
+        echo "❌ 冒煙測試失敗：$OUT" >&2
+        exit 1
+        ;;
+esac

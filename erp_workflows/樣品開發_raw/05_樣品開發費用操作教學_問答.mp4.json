@@ -1,0 +1,106 @@
+{
+  "task_name": "樣品開發：稅率修改與進貨明細調整及運費建立",
+  "video_summary": "教授如何在進貨明細表中手動修改稅率，以及建立不掛樣品單的運費（其他費用）。",
+  "erp_name": "FAST ERP (FU CHUN CORPORATION)",
+  "prerequisites": "已登入系統，並位於主選單頁面。",
+  "menu_path": "開發管理 → 進貨明細表建立 / 客戶 DN CN 建立",
+  "steps": [
+    {
+      "n": 1,
+      "action": "click",
+      "target_description": "左側選單中的「進貨明細表建立」",
+      "visual_cue": "文字標籤「進貨明細表建立」",
+      "example_value": null,
+      "why": "進入進貨資料編輯界面。"
+    },
+    {
+      "n": 2,
+      "action": "click",
+      "target_description": "畫面中下方的「單價修改」按鈕",
+      "visual_cue": "灰色長方形按鈕，文字為「單價修改」",
+      "example_value": null,
+      "why": "觸發修改流程，系統會先要求輸入原因。"
+    },
+    {
+      "n": 3,
+      "action": "fill",
+      "target_description": "彈出視窗中的「修改原因」輸入框",
+      "visual_cue": "標題為「修改原因」的對話框",
+      "example_value": "稅率修改",
+      "why": "系統強制要求填寫變更原因以供稽核。"
+    },
+    {
+      "n": 4,
+      "action": "fill",
+      "target_description": "列表中的「稅率」欄位",
+      "visual_cue": "欄位標題「稅率」",
+      "example_value": "8",
+      "why": "因越南稅率常變動，需依實際發票手動輸入。"
+    },
+    {
+      "n": 5,
+      "action": "click",
+      "target_description": "上方工具列的「儲存」圖示",
+      "visual_cue": "磁碟片圖示",
+      "example_value": null,
+      "why": "儲存稅率與金額變更。"
+    },
+    {
+      "n": 6,
+      "action": "click",
+      "target_description": "左側選單中的「客戶 DN CN 建立」",
+      "visual_cue": "文字標籤「客戶 DN CN 建立」",
+      "example_value": null,
+      "why": "處理如運費等額外費用。"
+    },
+    {
+      "n": 7,
+      "action": "select",
+      "target_description": "類別選擇下拉選單",
+      "visual_cue": "位於單頭的類別欄位",
+      "example_value": "其他費用",
+      "why": "若只需請款運費而不需對應樣品單，應選擇其他費用類別。"
+    },
+    {
+      "n": 8,
+      "action": "fill",
+      "target_description": "備註欄位",
+      "visual_cue": "文字輸入區域",
+      "example_value": "哪一批樣品單的運費",
+      "why": "記錄費用來源，方便財務對帳。"
+    }
+  ],
+  "fields_schema": {
+    "修改原因": {
+      "type": "string",
+      "required": true,
+      "example": "稅率調整",
+      "notes": "點擊單價修改後彈出"
+    },
+    "稅率": {
+      "type": "number",
+      "required": true,
+      "example": "8",
+      "notes": "手動輸入百分比數值"
+    },
+    "類別": {
+      "type": "string",
+      "required": true,
+      "example": "其他費用",
+      "notes": "決定是否需要關聯樣品單"
+    }
+  },
+  "validation": "點擊儲存後，系統應彈出「處理完成」或類似的成功訊息框。",
+  "common_pitfalls": [
+    "若直接修改稅率欄位而未先點擊「單價修改」按鈕，欄位可能呈現灰色無法輸入。",
+    "權限不足時，若高階主管已改過資料，一般職員將無法再次修改。"
+  ],
+  "narrator_tips": [
+    "越南稅率頻繁更動（5% 或 8%），因此報價單不鎖死稅率，需在進貨明細手動輸入。",
+    "建立運費時，若不想勾選出貨單，應改用「其他費用」模式建立 DN/CN。",
+    "建議在備註欄註明是哪一批樣品的運費，方便會計人員沖帳。"
+  ],
+  "_video_name": "樣品開發費用操作教學_問答.mp4",
+  "_video_path": "開發部教學",
+  "_video_index": 5
+}

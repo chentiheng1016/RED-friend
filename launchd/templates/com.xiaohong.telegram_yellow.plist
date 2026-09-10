@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.xiaohong.telegram_yellow</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>@@REPO_ROOT@@/.venv/bin/python</string>
+        <string>@@REPO_ROOT@@/agent_daemon.py</string>
+        <string>--task</string>
+        <string>telegram_bot</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>@@REPO_ROOT@@</string>
+
+    <!-- Yellow department Telegram bot: standalone private-chat entry. -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>StandardOutPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-telegram-yellow.log</string>
+    <key>StandardErrorPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-telegram-yellow.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- 整個 fleet 的 Gemini model；preview tier 高負載會回 503，
+             用 gemini-flash-latest 較穩。改完跑 redeploy-daemons -f。 -->
+        <key>RED_GEMINI_MODEL</key>
+        <string>gemini-flash-latest</string>
+        <key>RED_GEMINI_FALLBACK_MODEL</key>
+        <string>gemini-2.5-flash-lite</string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+
+        <!-- Token is stored in macOS keyring:
+             service=xiaohong-agent, key=yellow-telegram-bot-token. -->
+        <key>RED_TELEGRAM_BOT_TOKEN_SECRET_NAME</key>
+        <string>yellow-telegram-bot-token</string>
+        <key>RED_TELEGRAM_BOT_TOKEN_KEYRING_NAME</key>
+        <string>yellow-telegram-bot-token</string>
+        <key>RED_TELEGRAM_CHAT_ID_SECRET_NAME</key>
+        <string>yellow-telegram-chat-id</string>
+        <key>RED_TELEGRAM_CHAT_ID_KEYRING_NAME</key>
+        <string>yellow-telegram-chat-id</string>
+        <key>RED_TELEGRAM_BOT_USERNAME</key>
+        <string>example_yellow_bot</string>
+        <key>RED_TELEGRAM_STATE_SUFFIX</key>
+        <string>yellow</string>
+
+        <!-- Employees can private-message this bot, but first access requires
+             Red owner approval. Groups still require explicit binding. -->
+        <key>RED_TELEGRAM_DEFAULT_ACTOR_COLOR</key>
+        <string>yellow</string>
+        <!-- 員工自由對話（見 com.xiaohong.telegram.plist 同名 env 說明） -->
+        <key>RED_TG_EMPLOYEE_FREEFORM</key>
+        <string>all</string>
+        <key>RED_TELEGRAM_DEFAULT_ACTOR_NAME</key>
+        <string>Yellow Telegram Bot</string>
+        <key>RED_TELEGRAM_ALLOW_DEFAULT_ACTOR_PRIVATE_CHATS</key>
+        <string>1</string>
+        <key>RED_TELEGRAM_REQUIRE_OWNER_APPROVAL_FOR_DEFAULT_PRIVATE_CHATS</key>
+        <string>1</string>
+        <key>RED_TELEGRAM_APPROVAL_OWNER_CHAT_ID_SECRET_NAME</key>
+        <string>telegram-chat-id</string>
+        <key>RED_TELEGRAM_APPROVAL_OWNER_CHAT_ID_KEYRING_NAME</key>
+        <string>telegram-chat-id</string>
+
+        <key>RED_TOOL_RPC_TELEGRAM</key>
+        <string>1</string>
+        <key>RED_TOOL_RPC_PROXY_MODE</key>
+        <string>diagnostics</string>
+        <key>RED_TOOL_RPC_TOOL_TIMEOUT_S</key>
+        <string>300</string>
+        <key>RED_CHROMA_HTTP_URL</key>
+        <string>http://127.0.0.1:8000</string>
+        <key>RED_ERP_ORACLE_ENABLED</key>
+        <string>1</string>
+        <key>RED_ERP_SSH_KEY</key>
+        <string>/Users/user/.ssh/id_erp_jhdb</string>
+        <key>RED_EMBED_DIM</key>
+        <string>768</string>
+            <!-- 員工自然語言查詢的語意搜尋（RAG + search_emails/search_docs）。
+             1=開；依賴 chroma post-filter(PR#292) 讓 ACL filtered 查詢 <0.5s。 -->
+        <key>RED_EMPLOYEE_NLP_SEMANTIC_SEARCH</key>
+        <string>1</string>
+</dict>
+</dict>
+</plist>

@@ -1,0 +1,7 @@
+-r requirements-core.txt
+-r requirements-rag.txt
+-r requirements-web.txt
+-r requirements-docs.txt
+-r requirements-gui.txt
+-r requirements-market.txt
+-r requirements-oracle.txt

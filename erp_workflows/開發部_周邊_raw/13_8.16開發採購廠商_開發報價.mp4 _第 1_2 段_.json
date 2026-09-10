@@ -1,0 +1,111 @@
+{
+  "task_name": "開發部周邊資料維護與樣品單管理",
+  "video_summary": "維護物料本地化名稱、列印樣品單及設定材料庫存與領用參數。",
+  "erp_name": "FAST ERP",
+  "prerequisites": "已進入系統主畫面且具備開發部相關模組權限。",
+  "menu_path": "主選單 → 開發管理 → 各分項功能 (編碼規則/部位建立/樣品單建立/材料參數設定)",
+  "steps": [
+    {
+      "n": 1,
+      "action": "click",
+      "target_description": "功能地圖中左側的「系統管理」下方的「公用代碼建立」",
+      "visual_cue": "公用代碼建立",
+      "why": "進入基礎代碼維護介面"
+    },
+    {
+      "n": 2,
+      "action": "fill",
+      "target_description": "各分項資料中的「本地化名稱1」欄位",
+      "visual_cue": "本地化名稱1",
+      "example_value": "（輸入對應的越南文名稱）",
+      "why": "提供生產端（越南廠）可閱讀的物料與類別資訊"
+    },
+    {
+      "n": 3,
+      "action": "click",
+      "target_description": "工具列上的「執行查詢」按鈕（望遠鏡圖示）",
+      "visual_cue": "望遠鏡 icon / 執行查詢",
+      "why": "讀取現有的編碼規則或物料清單"
+    },
+    {
+      "n": 4,
+      "action": "click",
+      "target_description": "「開發料品編碼建立」頁面右上方的「執行生效修改」按鈕",
+      "visual_cue": "執行生效修改",
+      "why": "解除已生效資料的鎖定以進行編輯"
+    },
+    {
+      "n": 5,
+      "action": "click",
+      "target_description": "「樣品單建立」畫面右側的「樣品單列印」按鈕",
+      "visual_cue": "樣品單列印",
+      "why": "啟動樣品單輸出程序"
+    },
+    {
+      "n": 6,
+      "action": "select",
+      "target_description": "列印視窗中的「樣品單單號」",
+      "visual_cue": "樣品單單號",
+      "example_value": "JFS2208001",
+      "why": "指定要輸出的樣品單據"
+    },
+    {
+      "n": 7,
+      "action": "click",
+      "target_description": "列印視窗底部的「Print」按鈕",
+      "visual_cue": "Print",
+      "why": "生成 PDF 格式的樣品單據（SPEC）"
+    },
+    {
+      "n": 8,
+      "action": "click",
+      "target_description": "樣品單建立頁面的「生效修改」按鈕",
+      "visual_cue": "生效修改(F)",
+      "why": "修改已生效單據的備註、描述或選取特定物料進行「用料修改」"
+    },
+    {
+      "n": 9,
+      "action": "select",
+      "target_description": "開發材料參數設定中的「庫存管制方式」、「領料管制方式」",
+      "visual_cue": "庫存管制方式 / 領料管制方式",
+      "example_value": "1-不管制 / 0-依樣單領料",
+      "why": "定義不同物料大類在倉庫端的領用邏輯"
+    }
+  ],
+  "fields_schema": {
+    "本地化名稱": {
+      "type": "string",
+      "required": true,
+      "notes": "通常用於填寫越南文名稱"
+    },
+    "樣品單單號": {
+      "type": "string",
+      "required": true,
+      "notes": "列印或修改時的核心索引"
+    },
+    "庫存管制方式": {
+      "type": "dropdown",
+      "required": true,
+      "example": "1-不管制 / 2-BY客戶管制",
+      "notes": "控制物料是否專供特定客戶"
+    },
+    "領料管制方式": {
+      "type": "dropdown",
+      "required": true,
+      "example": "0-依樣單領料 / 1-自動倒扣",
+      "notes": "線材類通常選自動倒扣，一般物料依樣單領料"
+    }
+  },
+  "validation": "修改後點擊「保存」按鈕，若系統彈出「資料儲存成功」視窗即完成。",
+  "common_pitfalls": [
+    "顏色資料無法在此畫面直接修改，必須透過原始 Excel 檔重新匯入。",
+    "如果樣品單清單呈現粉紅色，代表該單據已被後續流程取用（如轉量產），修改需更謹慎。"
+  ],
+  "narrator_tips": [
+    "「本地化名稱」務必補齊，否則越南廠生產端會看不懂中文名稱。",
+    "樣品單生效修改會產生版本號，可透過「版本」欄位查詢歷史修改紀錄。",
+    "修改已生效的樣品用料時，需點擊「用料修改」按鈕才能進入明細編輯。"
+  ],
+  "_video_name": "8.16開發採購廠商&開發報價.mp4 (第 1/2 段)",
+  "_split_part": 1
+}

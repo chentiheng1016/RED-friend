@@ -1,0 +1,139 @@
+{
+  "task_name": "開發部_周邊流程操作（供貨商維護、需求彙總、加工採購、收發料與報價）",
+  "video_summary": "涵蓋供貨商刪除、樣品需求彙總、加工採購、收料入庫及報價批次設定。",
+  "erp_name": "FAST ERP",
+  "prerequisites": "已登入系統並進入「開發部_周邊」流程主頁面",
+  "menu_path": "主選單 → 開發部_周邊",
+  "steps": [
+    {
+      "n": 1,
+      "action": "click",
+      "target_description": "流程圖中的「開發供貨商建立」按鈕",
+      "visual_cue": "開發供貨商建立",
+      "why": "處理重複或錯誤的供貨商資料"
+    },
+    {
+      "n": 2,
+      "action": "click",
+      "target_description": "工具列上的「刪除」按鈕（紅色叉叉或垃圾桶圖示）",
+      "visual_cue": "刪除 icon",
+      "why": "刪除尚未生效且輸入錯誤的重複供貨商資料"
+    },
+    {
+      "n": 3,
+      "action": "click",
+      "target_description": "樣品單頁籤或流程圖中的「調料需求彙總」",
+      "visual_cue": "調料需求彙總",
+      "why": "將多張樣品單的材料需求進行彙整以利採購"
+    },
+    {
+      "n": 4,
+      "action": "click",
+      "target_description": "流程圖中的「非庫存調料加工採購建立」",
+      "visual_cue": "非庫存調料加工採購建立",
+      "why": "建立材料加工的採購訂單"
+    },
+    {
+      "n": 5,
+      "action": "fill",
+      "target_description": "加工採購單中的「供貨商代碼」、「採購類別」與「調樣品單」欄位",
+      "visual_cue": "紅字必填標籤",
+      "example_value": "億發 (Supplier), 樣品採購 (Category)",
+      "why": "定義採購來源與關聯的樣品單"
+    },
+    {
+      "n": 6,
+      "action": "fill",
+      "target_description": "明細列中的「幣別」、「加工單價」與「採購數量」",
+      "visual_cue": "明細網格欄位",
+      "example_value": "TWD, 15, 5",
+      "why": "輸入具體的成本與採購量"
+    },
+    {
+      "n": 7,
+      "action": "click",
+      "target_description": "工具列的「生效」按鈕",
+      "visual_cue": "生效",
+      "why": "正式下達採購訂單，使其不可隨意更改"
+    },
+    {
+      "n": 8,
+      "action": "click",
+      "target_description": "流程圖中的「開發進退貨建立」",
+      "visual_cue": "開發進退貨建立",
+      "why": "執行材料收料入庫操作"
+    },
+    {
+      "n": 9,
+      "action": "select",
+      "target_description": "「移動類別」選擇「原材料收料入庫」並從「來源單號」挑選訂單",
+      "visual_cue": "來源單號 (開窗挑選)",
+      "why": "關聯採購單據進行收料"
+    },
+    {
+      "n": 10,
+      "action": "fill",
+      "target_description": "「實收數量」欄位",
+      "visual_cue": "實收數量",
+      "example_value": "26",
+      "why": "記錄實際到貨數量，可與訂購量不同"
+    },
+    {
+      "n": 11,
+      "action": "click",
+      "target_description": "流程圖中的「開發材料調撥建立」",
+      "visual_cue": "開發材料調撥建立",
+      "why": "將材料從海上倉（P倉）調撥至實際開發倉"
+    },
+    {
+      "n": 12,
+      "action": "click",
+      "target_description": "報價頁面的「批次設定」按鈕",
+      "visual_cue": "批次設定",
+      "why": "快速為同一材料的不同顏色設定相同單價"
+    }
+  ],
+  "fields_schema": {
+    "供貨商代碼": {
+      "type": "string",
+      "required": true,
+      "example": "A001",
+      "notes": "加工廠或供應商代號"
+    },
+    "採購類別": {
+      "type": "enum",
+      "required": true,
+      "example": "樣品採購"
+    },
+    "加工單價": {
+      "type": "number",
+      "required": true,
+      "example": "15"
+    },
+    "實收數量": {
+      "type": "number",
+      "required": true,
+      "example": "26",
+      "notes": "入庫時的實際點收數量"
+    },
+    "撥出/撥入倉庫": {
+      "type": "string",
+      "required": true,
+      "example": "精利海上倉 -> 開發材料倉"
+    }
+  },
+  "validation": "單據保存後產生「單據編號」，且點擊「生效」後狀態欄顯示為「生效」，且庫存查詢可看到數量增加。",
+  "common_pitfalls": [
+    "在收料入庫時，若漏點「生效」，庫存將不會實際增加。",
+    "報價單生效後若發現錯誤，需先點擊「取消生效」才能修改單價。",
+    "查詢庫存時若未輸入材料編號，可能查不到資料。"
+  ],
+  "narrator_tips": [
+    "若資料尚未生效且有誤，可直接點擊工具列的紅叉刪除。",
+    "利用「批次設定」可以節省逐一輸入不同顏色單價的時間。",
+    "海上倉（帶有 P 前綴）代表貨物在途中，需透過調撥單轉入實體倉。"
+  ],
+  "_video_name": "8.22開發採購.mp4",
+  "_video_path": "開發部教學",
+  "_video_index": 3
+}

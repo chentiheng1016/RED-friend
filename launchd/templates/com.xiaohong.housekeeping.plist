@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.xiaohong.housekeeping</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>@@REPO_ROOT@@/.venv/bin/python</string>
+        <string>@@REPO_ROOT@@/launchd/scripts/housekeeping.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>@@REPO_ROOT@@</string>
+
+    <!-- 每週日 04:30 AM，接在 03:00 backup 之後 -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>0</integer>
+        <key>Hour</key>
+        <integer>4</integer>
+        <key>Minute</key>
+        <integer>30</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+    <key>KeepAlive</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>@@REPO_ROOT@@/var/logs/housekeeping.log</string>
+    <key>StandardErrorPath</key>
+    <string>@@REPO_ROOT@@/var/logs/housekeeping.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- 走共用 chroma server，勿開 embedded PersistentClient(會與 server 搶同一份 HNSW 索引→SIGSEGV) -->
+        <key>RED_CHROMA_HTTP_URL</key>
+        <string>http://127.0.0.1:8000</string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+        <key>RED_EMBED_DIM</key>
+        <string>768</string>
+    </dict>
+</dict>
+</plist>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.xiaohong.alert_check</string>
+
+    <!-- 每 5 分鐘掃一次 alerts，新觸發的 push 到 Telegram。
+         tick-style daemon — 短壽命 process，跑完即退出。 -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>@@REPO_ROOT@@/.venv/bin/python</string>
+        <string>-m</string>
+        <string>agent_core.alert_pusher</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>@@REPO_ROOT@@</string>
+
+    <key>StartInterval</key>
+    <integer>300</integer>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-alert_check.log</string>
+    <key>StandardErrorPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-alert_check.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- 走共用 chroma server，勿開 embedded PersistentClient(會與 server 搶同一份 HNSW 索引→SIGSEGV) -->
+        <key>RED_CHROMA_HTTP_URL</key>
+        <string>http://127.0.0.1:8000</string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+        <!-- daemon 模式 — 抑制 startup print -->
+        <key>AGENT_DAEMON_MODE</key>
+        <string>1</string>
+        <!-- Gemini 月度成本上限預警（USD）：月用量達 cap 的 80% warn / 95% crit
+             就 Telegram 預警（不經 Gemini，撞牆 429 後仍送得出）。
+             🚨 2026-08-05 改用真美元刻度。舊值 25000 其實是**新台幣** —— 08-01
+             那次 _PRICING 校正把帳單上的 TWD 金額當成 USD 存，門檻也就訂在 TWD
+             刻度上（見 cost_tracker._PRICING 的幣別註解）。真實量級：4–7 月
+             實花 NT$57,095 ≈ US$1,764、重月 ≈ US$620，日燒 ≈ US$13。
+             800 = 25000/32.37 ≈ US$772 取整，維持等效觸發點不變。
+             80% = US$640 warn、95% = US$760 crit。
+             ⚠️ 若預付 credits 有真正的月上限，把這裡改成那個金額以對齊
+             「快撞 429 depleted」的語意（記得那個金額也要是美元）。0 = 關閉。
+             改完跑 ./bin/redeploy-daemons alert_check -f 生效。 -->
+        <key>RED_ALERT_COST_MONTHLY_CAP_USD</key>
+        <string>800</string>
+        <!-- 成本告警並行寄 email（warn + crit 都寄）。2026-08-04 大王指定：
+             成本不正常要收得到信，不能等 telegram 掛掉才寄，所以 alert_pusher
+             把這條路排在 telegram 之前、且兩邊都送。
+             逗號分隔可多人；留空 = 關閉（只走原本的 telegram + email fallback）。
+             只有 id 以 cost 開頭的告警會走這裡（cost_today / cost_ratio /
+             cost_monthly_cap / cost_high），其他告警不受影響。
+             改完跑 ./bin/redeploy-daemons alert_check -f 生效。 -->
+        <key>RED_ALERT_COST_EMAIL_TO</key>
+        <string>owner@company.example</string>
+        <key>RED_EMBED_DIM</key>
+        <string>768</string>
+    </dict>
+</dict>
+</plist>

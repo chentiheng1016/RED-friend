@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}員工管理 — 小紅員工入口{% endblock %}
+{% block extra_style %}
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #eee; }
+th { font-weight: 600; color: #555; font-size: .9rem; background: #fafafa; }
+tr:hover td { background: #f9f9f9; }
+.badge { display: inline-block; padding: 2px 10px; border-radius: 12px;
+         font-size: .8rem; font-weight: 600; background: #eee; color: #555; }
+.add-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+.add-form label { font-size: .85rem; color: #555; display: block; margin-bottom: 4px; }
+.add-form input, .add-form select { padding: 8px 12px; border: 1px solid #ddd;
+  border-radius: 6px; font-size: .95rem; outline: none; }
+.add-form input:focus, .add-form select:focus { border-color: #c0392b; }
+{% endblock %}
+{% block content %}
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:20px">
+  <h2>⚙️ 員工帳號管理</h2>
+  <a href="/admin/telegram" style="margin-left:auto; font-size:.85rem; color:#888;">Telegram 管理</a>
+  <a href="/" style="font-size:.85rem; color:#888;">← 返回總覽</a>
+</div>
+
+<div class="card" style="margin-bottom:20px">
+  <h3 style="margin-bottom:16px; font-size:1rem">新增員工</h3>
+  <form method="post" action="/admin/employees">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="add-form">
+      <div>
+        <label>Google Email</label>
+        <input type="email" name="email" placeholder="alice@company.com" required>
+      </div>
+      <div>
+        <label>姓名</label>
+        <input type="text" name="name" placeholder="Alice" required>
+      </div>
+      <div>
+        <label>部門</label>
+        <select name="color" required>
+          <option value="" disabled selected>— 請選擇部門 —</option>
+          {% for color, label in depts.items() %}
+          {% if color != "red" %}
+          <option value="{{ color }}">{{ label }}（{{ color }}）</option>
+          {% endif %}
+          {% endfor %}
+          <option value="red">⚠️ 總經理辦公室（red，具管理員權限）</option>
+        </select>
+      </div>
+      <div>
+        <label>LINE userId（可選）</label>
+        <input type="text" name="line_user_id" placeholder="Uxxxxxxxx">
+      </div>
+      <div>
+        <label>Telegram chat/user ID（可選）</label>
+        <input type="text" name="telegram_user_id" placeholder="123456789">
+      </div>
+      <button type="submit" class="btn btn-primary" style="height:38px">新增</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <h3 style="margin-bottom:16px; font-size:1rem">已登記員工（{{ employees|length }} 人）</h3>
+  {% if employees %}
+  <table>
+    <thead>
+      <tr><th>Email</th><th>姓名</th><th>部門</th><th>LINE</th><th>Telegram</th><th>操作</th></tr>
+    </thead>
+    <tbody>
+      {% for emp in employees %}
+      <tr>
+        <td>{{ emp.email }}</td>
+        <td>{{ emp.name }}</td>
+        <td><span class="badge">{{ depts.get(emp.color, emp.color) }} ({{ emp.color }})</span></td>
+        <td style="font-size:.8rem; color:#777">{{ emp.line_user_id or "未綁定" }}</td>
+        <td style="font-size:.8rem; color:#777">{{ emp.telegram_user_id or "未綁定" }}</td>
+        <td><a href="/dept/{{ emp.color }}" style="font-size:.85rem; color:#c0392b">進入部門 →</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#999; text-align:center; padding:24px">尚未登記任何員工</p>
+  {% endif %}
+</div>
+{% endblock %}

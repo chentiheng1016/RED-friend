@@ -1,0 +1,47 @@
+#!/bin/bash
+# 小紅 agent 啟動器 — 確保用 repo 內的 .venv 跑，避免撞到系統 Python 3.9 EOL。
+#
+# 使用方式：
+#   ./bin/agent              # 在 repo 根目錄下跑
+#   /path/to/RED/bin/agent   # 任意位置跑也可以（launcher 會自己找 repo 根）
+#
+# 為什麼不用 shebang 直接寫 .venv 路徑：
+#   寫死路徑不可攜（只能在作者的機器跑）。launcher 用 $BASH_SOURCE
+#   自動解析 repo 根，放到任何位置都能動。
+
+set -e
+
+# 解析 bin/agent 自己的真實路徑（處理 symlink 情況）
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+    DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+# bin/agent 在 {REPO_ROOT}/bin/，向上一層就是 REPO_ROOT
+REPO_ROOT="$(cd -P "$(dirname "$SOURCE")/.." >/dev/null 2>&1 && pwd)"
+
+VENV_PY="$REPO_ROOT/.venv/bin/python"
+AGENT_PY="$REPO_ROOT/agent.py"
+
+# --- 前置檢查 ---
+if [ ! -x "$VENV_PY" ]; then
+    echo "❌ 找不到 venv Python：$VENV_PY"
+    echo ""
+    echo "第一次跑請先建好 venv：    "
+    echo "    cd '$REPO_ROOT'"
+    echo "    python3 -m venv .venv"
+    echo "    .venv/bin/pip install -r requirements.txt"
+    exit 1
+fi
+
+if [ ! -f "$AGENT_PY" ]; then
+    echo "❌ 找不到 agent.py：$AGENT_PY"
+    exit 1
+fi
+
+# 傳 REPO_ROOT 給子程序（daemon_helpers.py 會用）
+export REPO_ROOT
+
+# exec 取代自己的 process 給 python，訊號直通、child-parent 乾淨
+exec "$VENV_PY" "$AGENT_PY" "$@"

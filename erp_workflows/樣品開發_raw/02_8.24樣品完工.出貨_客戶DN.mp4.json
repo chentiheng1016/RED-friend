@@ -1,0 +1,194 @@
+{
+  "task_name": "樣品完工回報、出貨及客戶確認流程",
+  "video_summary": "教學樣品單完工回報、入庫出貨、客戶確認及DN/CN費用單建立。",
+  "erp_name": "FAST ERP",
+  "prerequisites": "已登入系統，樣品單已建立且相關材料已收料完成。",
+  "menu_path": "主選單 → 開發管理 → 樣品單完工回報 / 樣品單人庫出貨 / 內部客戶確認",
+  "steps": [
+    {
+      "n": 1,
+      "action": "click",
+      "target_description": "選單中的「樣品單完工回報」節點",
+      "visual_cue": "文字「樣品單完工回報」",
+      "why": "進入完工回報功能頁面"
+    },
+    {
+      "n": 2,
+      "action": "click",
+      "target_description": "頁面面上方第二個頁籤「資料維護/樣品完工回報」",
+      "visual_cue": "頁籤標籤文字",
+      "why": "切換至編輯模式"
+    },
+    {
+      "n": 3,
+      "action": "fill",
+      "target_description": "完工日期欄位",
+      "visual_cue": "完工日期 label，有日曆圖示",
+      "example_value": "2022/08/24",
+      "why": "記錄樣品實際完成日期"
+    },
+    {
+      "n": 4,
+      "action": "select",
+      "target_description": "回報類別下拉選單，選擇「面部」或「整雙」",
+      "visual_cue": "回報類別 label",
+      "example_value": "面部",
+      "why": "區分完工階段，通常先回報面部再回報整雙"
+    },
+    {
+      "n": 5,
+      "action": "select",
+      "target_description": "樣品單號與 Size 欄位",
+      "visual_cue": "樣品單號、Size label",
+      "why": "選擇對應的樣品單據與尺寸"
+    },
+    {
+      "n": 6,
+      "action": "fill",
+      "target_description": "完工數量欄位",
+      "visual_cue": "完工數量 label",
+      "example_value": "2",
+      "why": "回報本次完成的樣品雙數"
+    },
+    {
+      "n": 7,
+      "action": "click",
+      "target_description": "工具列上的「生效」按鈕",
+      "visual_cue": "打勾或生效圖示",
+      "why": "提交完工數據"
+    },
+    {
+      "n": 8,
+      "action": "click",
+      "target_description": "主選單「樣品單人庫/出貨」功能",
+      "visual_cue": "文字「樣品單人庫/出貨」",
+      "why": "進行樣品寄送操作"
+    },
+    {
+      "n": 9,
+      "action": "fill",
+      "target_description": "出貨資料頁籤中的出貨方式、客戶、日期、提單號碼",
+      "visual_cue": "紅字標題欄位",
+      "example_value": "UPS / NEW WAVE / 2022-08-25 / NO",
+      "why": "建立出貨單基本資訊"
+    },
+    {
+      "n": 10,
+      "action": "click",
+      "target_description": "畫面中段的「選擇樣品單」按鈕",
+      "visual_cue": "灰色長方形按鈕，文字「選擇樣品單」",
+      "why": "開啟視窗選取已完工待寄送的樣品"
+    },
+    {
+      "n": 11,
+      "action": "fill",
+      "target_description": "明細中的海關單價與報價單價欄位",
+      "visual_cue": "海關單價、報價單價 label",
+      "example_value": "13",
+      "why": "設定報關與對客人的請款單價"
+    },
+    {
+      "n": 12,
+      "action": "click",
+      "target_description": "工具列的「生效」按鈕，隨後點擊「執行出貨」",
+      "visual_cue": "生效按鈕與執行出貨按鈕",
+      "why": "確認單據並完成庫存扣帳與出貨流程"
+    },
+    {
+      "n": 13,
+      "action": "click",
+      "target_description": "主選單「內部/客戶確認」功能",
+      "visual_cue": "文字「內部/客戶確認」",
+      "why": "記錄客戶收到樣品後的反饋"
+    },
+    {
+      "n": 14,
+      "action": "select",
+      "target_description": "確認結果欄位，選擇 Pass 或 NG",
+      "visual_cue": "確認結果下拉選單",
+      "example_value": "NG",
+      "why": "若為 NG 則需執行重打樣流程"
+    },
+    {
+      "n": 15,
+      "action": "select",
+      "target_description": "不良原因欄位（若為 NG）",
+      "visual_cue": "不良原因 label",
+      "example_value": "材料印錯",
+      "why": "分析並記錄打樣失敗的原因"
+    },
+    {
+      "n": 16,
+      "action": "observe",
+      "target_description": "樣品單建立畫面",
+      "visual_cue": "樣品單號版序文字",
+      "why": "觀察 NG 生效後，系統會自動複製原始資料並產生新版序（如 A 版）"
+    },
+    {
+      "n": 17,
+      "action": "click",
+      "target_description": "主選單「客戶 DN/CN 建立」功能",
+      "visual_cue": "文字「客戶 DN/CN 建立」",
+      "why": "針對樣品費用或運費向客戶請款"
+    },
+    {
+      "n": 18,
+      "action": "fill",
+      "target_description": "明細中的「其他項目」並填寫金額",
+      "visual_cue": "其他項目 label",
+      "example_value": "運費 / 50",
+      "why": "將非樣品本身的雜項費用加入請款單中"
+    }
+  ],
+  "fields_schema": {
+    "完工日期": {
+      "type": "date",
+      "required": true,
+      "example": "2022/08/24"
+    },
+    "回報類別": {
+      "type": "string",
+      "required": true,
+      "example": "面部 / 整雙"
+    },
+    "完工數量": {
+      "type": "number",
+      "required": true,
+      "example": "2"
+    },
+    "海關單價": {
+      "type": "number",
+      "required": true,
+      "example": "13"
+    },
+    "報價單價": {
+      "type": "number",
+      "required": true,
+      "example": "13"
+    },
+    "確認結果": {
+      "type": "string",
+      "required": true,
+      "example": "Pass / NG"
+    },
+    "不良原因": {
+      "type": "string",
+      "required": false,
+      "example": "材料印錯",
+      "notes": "僅在結果為 NG 時必填"
+    }
+  },
+  "validation": "出貨流程點擊「執行出貨」後，單據狀態會鎖定且報表預覽顯示對應數據；確認結果為 NG 後，樣品清單會自動出現 A 版序單據。",
+  "common_pitfalls": [
+    "在出貨單點擊『選擇樣品單』時，若客戶資料或出貨來源選擇錯誤，會找不到對應樣品。",
+    "完工回報時，必須先有『面部』完工記錄，才能做『整雙』完工。"
+  ],
+  "narrator_tips": [
+    "整雙完工回報前，一定要確認面部已經回報過完工。",
+    "如果客戶確認為 NG，生效後系統會自動複製整張樣品單資料並產生序號 A 的新單據，方便快速重做。",
+    "雜項費用（如運費）若要在 DN/CN 中選取，需先在『公用代碼』中建立對應的項目代碼。"
+  ],
+  "_video_name": "8.24樣品完工.出貨&客戶DN.mp4",
+  "_video_path": "開發部教學",
+  "_video_index": 2
+}

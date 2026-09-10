@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  共用本機 embedding server（bge-m3）— fleet 的 embedding 咽喉。
+
+  This template is NOT loaded by default. bge cutover 部署順序：
+
+    1. 建獨立 venv（torch/sentence-transformers 是重依賴，鐵則不進主 .venv）：
+         ./bin/embed-server-venv
+       完成後 var/venvs/embed 就緒、模型檔快取到 ~/.cache/huggingface。
+
+    2. Install + load this plist:
+         ./bin/redeploy-daemons embed_server -f
+
+    3. Verify the server is up (model load takes about a minute):
+         curl http://127.0.0.1:8601/healthz
+       Expected: {"ok": true, "model": "bge-m3", "dim": 1024, ...}
+
+    4. 切換 backend 是另一步（RED_EMBED_BACKEND=bge 進各 daemon plist），
+       server 先起、先驗，backend flag 後翻 — 可分開回退。
+
+  Why a separate process: bge-m3 fp16 佔 ~1.2GB，TG 十色 bot、web、rag_sync
+  全是獨立 process，各載一份不可行。照 com.xiaohong.chroma 同一套劇本：
+  單 daemon 佔住模型、全 fleet 走 localhost HTTP。
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.xiaohong.embed_server</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>@@REPO_ROOT@@/var/venvs/embed/bin/python</string>
+        <string>-m</string>
+        <string>agent_core.embed_server</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>@@REPO_ROOT@@</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>StandardOutPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-embed_server.log</string>
+    <key>StandardErrorPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-embed_server.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+        <!-- Bind 127.0.0.1 only（embed_server.py 寫死 loopback）；port 與
+             batch 上限可在此覆寫：RED_EMBED_HTTP_PORT / RED_EMBED_BATCH /
+             RED_EMBED_MAX_BATCH / RED_EMBED_MAX_SEQ。 -->
+    </dict>
+</dict>
+</plist>

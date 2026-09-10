@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.xiaohong.rag_sync_daily</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>@@REPO_ROOT@@/.venv/bin/python</string>
+        <string>@@REPO_ROOT@@/launchd/scripts/rag_sync.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>@@REPO_ROOT@@</string>
+
+    <!-- 每天 01:00 AM 起跑（大王指示，讓 06:00 硬上限 + 07:00 前結束，跟
+         08:00 起跑的生產回報/警示/email 追蹤留 1 小時緩衝，Gemini embed API
+         流量最低 / 大王睡覺）。整輪 wall-clock 硬上限見 rag_sync.py 的
+         RAG_SYNC_DEADLINE_S（預設 21600s=6h）。
+         ⚠️改 Hour 時要同步改下面 EnvironmentVariables 的 RAG_SYNC_SCHEDULE_HOUR
+         （sync_guard 的放行窗口），有測試擋兩者漂移。-->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>1</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <!-- load 時不自動跑，等排程時間 -->
+    <key>RunAtLoad</key>
+    <false/>
+    <!-- 防護網：跑壞了（unhandled exception=exit1 / 殘餘 SIGSEGV=-11）就自動重啟，
+         當天靠 content-hash dedup 續做，不必苦等隔天 01:00。正常跑完 exit 0 不重啟
+         （run_sync 把 quota/auth/單檔錯誤都吃進 errors list、正常 return，不會誤觸）。
+         ThrottleInterval 給 30 分鐘下限，萬一是啟動即崩也不會瘋狂 respawn 燒 Gemini。-->
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+    <key>ThrottleInterval</key>
+    <integer>1800</integer>
+
+    <key>StandardOutPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-rag_sync.log</string>
+    <key>StandardErrorPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-rag_sync.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- 走共用 chroma server，勿開 embedded PersistentClient(會與 server 搶同一份 HNSW 索引→SIGSEGV) -->
+        <key>RED_CHROMA_HTTP_URL</key>
+        <string>http://127.0.0.1:8000</string>
+        <!-- 圖片 OCR 走 Gemini vision；程式預設 gemini-3-flash-preview 是 preview tier，尖峰回 503
+             把整輪拖到 20h+。改 gemini-flash-latest（較穩、少 503，morning daemon 同理）。改完要
+             reload rag 才生效（會中斷當前那輪）→ 隨下次 rag 部署一起套，別為它單獨殺正在跑的輪。 -->
+        <key>RED_GEMINI_MODEL</key>
+        <string>gemini-flash-latest</string>
+        <key>RED_GEMINI_FALLBACK_MODEL</key>
+        <string>gemini-2.5-flash-lite</string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+        <key>AGENT_DAEMON_MODE</key>
+        <string>1</string>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+        <!-- sync_guard 的排程放行窗口，必須跟上面 StartCalendarInterval 的 Hour 一致
+             （程式預設 3）。2026-07-04 事故：排程改 01:00 但沒設這個 env → 每天 01:00
+             的正常排程被 guard 當成「deploy 誤觸發」跳過，夜跑退化成靠「上次成功 ≥16h」
+             後門每 ~36h 才真正跑一輪。 -->
+        <key>RAG_SYNC_SCHEDULE_HOUR</key>
+        <string>1</string>
+        <!-- Embed retry budget: default 3 (~30s backoff) gives up under
+             sustained 429 during big-box bulk embedding. 5 attempts
+             (10/20/40/80s) rides out the RPM-saturation window so far fewer
+             threads get deferred to the next run. All giving-ups observed
+             were transient 429s, never real errors. -->
+        <key>RAG_EMBED_RETRY_MAX_ATTEMPTS</key>
+        <string>5</string>
+        <!-- Image OCR/caption ingest enabled — without this the daily sync's
+             listing query drops image MIMEs, then sync_shared_drive's purge
+             step deletes every previously-indexed image chunk for being
+             "absent from Drive". Keep enabled until purge logic is mime-aware
+             (otherwise toggling this off silently wipes ~10k image chunks). -->
+        <key>RAG_DRIVE_ENABLE_IMAGE_INGEST</key>
+        <string>1</string>
+        <!-- Audio/video transcription is opt-in and bounded by size/cost,
+             but meeting recordings and training clips should be searchable. -->
+        <key>RAG_DRIVE_ENABLE_MEDIA_INGEST</key>
+        <string>1</string>
+        <!-- 會議錄影資料夾（逗號分隔 folder id）：名單內的影片改走本地 whisper 中文
+             音訊轉稿（會議畫面是頭像/投影片，抽幀無用、只有語音有價值），非影片（Meet
+             自動生成的英文 Transcript / Gemini 筆記）一律跳過。本機零 API 成本、不受
+             上面 media 每日預算斷路器限制。見 drive_sync._extract_meeting_transcript /
+             _is_meeting_folder。1MsvKHF…=「我的雲端硬碟」Meet Recordings 資料夾。 -->
+        <key>RAG_MEETING_FOLDER_IDS</key>
+        <string>1MsvKHF24yrcvSLvVs2FeCYln27zM-e0N</string>
+        <key>RAG_MEDIA_MAX_BYTES</key>
+        <string>262144000</string>
+        <!-- 每日媒體分析預算（真美元）。媒體走 flash-latest 抽幀 + pro-latest
+             deep，單件比圖片貴得多，所以刻意比 image 那條緊。
+             幣別沿革見下方 RAG_IMAGE_DAILY_COST_LIMIT_USD 的說明。 -->
+        <key>RAG_MEDIA_DAILY_COST_LIMIT_USD</key>
+        <string>1.00</string>
+        <!-- Keep the global binary download guard at 50MB, but let large
+             Excel workbooks through the read-only spreadsheet extractor.
+             Examples: Danh sách nhân sự 1.xlsx is ~75MB; warehouse Swatch
+             File Photo.xls is ~148MB; CHUAN BI XUAT.xls is ~302MB. -->
+        <key>RAG_DRIVE_SPREADSHEET_MAX_DOWNLOAD_MB</key>
+        <string>350</string>
+        <!-- Daily image OCR/caption budget. Text/PDF/XLSX ingest continues
+             after this cap; image chunks are preserved and the skip is NOT
+             negative-cached (drive_sync.sync_file returns image_ocr_unavailable
+             without a skip-marker), so capped images retry on the next run.
+             Raised $1->$5 on 2026-06-15 to drain a ~24k-image backlog (factory
+             product photos across 10 Shared Drives; at $1 the run cleared only
+             ~500/day, so the tail never caught up) over ~1-2 weeks of nightly
+             runs instead of ~24. Still capped so a Drive photo burst can't
+             spend tens of USD in one run.
+
+             ⚠️ 幣別沿革（這條比對的是 cost.jsonl 的當日金額，而那本帳換過三次
+             刻度）：紀元① ~07-31 _PRICING 嚴重低估，名目 $1 實際放行約 $670/日；
+             紀元② 08-01 #328 改用帳單數字，但那是新台幣誤當美元、放大 ~32 倍；
+             紀元③ 08-05 #353 換官方 USD 牌價，帳本數字終於就是美元。
+             ⇒ 這裡的 5.00 到紀元③才真正等於「一天五塊美金」，也才符合上面那段
+             設計意圖。**不要拿舊值乘除匯率反推**——舊值在當時就沒有意義。
+             程式預設同為 5.00（drive_sync._IMAGE_DAILY_COST_LIMIT_USD），
+             由 tests/test_drive_sync_cost_limits.py 釘住兩邊一致。 -->
+        <key>RAG_IMAGE_DAILY_COST_LIMIT_USD</key>
+        <string>5.00</string>
+        <key>RED_EMBED_DIM</key>
+        <string>768</string>
+        <!-- Embedding 走公開 Gemini API（gemini-embedding-001）。曾為避公開 API 尖峰 503
+             改走 Vertex（=1），但 2026-06-29 發現 Vertex 在 launchd daemon 內 100% 回
+             403「Permission denied on the service account」——同一把 SA 在 shell / env -i /
+             AGENT_DAEMON_MODE 各測皆通、僅 daemon 內失敗（根因在 launchd 執行環境、未解），
+             且 _get_embed_client 只在「建置失敗」才 fallback、per-call 403 不退→整輪卡死。
+             改回公開 API：同 768 維同向量空間（零重抽）、重負載(降維/會計 OCR)已過、增量夜跑
+             負載輕、RAG_EMBED_RETRY_MAX_ATTEMPTS=5 擋暫時 throttle。要再用 Vertex 須先解
+             daemon-403 並補 per-call fallback，再設 1。 -->
+        <key>RED_EMBED_USE_VERTEX</key>
+        <string>0</string>
+        <!-- 掃描型 PDF（合約/財報/匯款單，無文字層）走 macOS Vision OCR（ocrmac，本機、
+             免費、不碰 Gemini/503）補進 RAG，而非靜默 empty_text 跳過。大王指示：遇掃描檔
+             一律 OCR。⚠️首次開啟的那輪會把全 fleet 既有 empty_text 掃描 PDF 重試 OCR（一次性
+             大掃，免費但耗 CPU、那輪會偏長）；之後增量只 OCR 新檔。頁數上限 RAG_PDF_OCR_MAX_PAGES
+             預設 15。設 0 即時關。 -->
+        <key>RAG_PDF_OCR</key>
+        <string>1</string>
+        <!-- 圖片只走 macOS Vision OCR、不退 Gemini（大王指示）。ocrmac 抽到字就用、全無字
+             （自然照片）就跳過，完全不打 Gemini Vision——避開 preview 模型 high-demand 503
+             （夜跑卡圖片 ~10h 的元凶）、零 API 成本。取捨：無文字產品照失去視覺描述。設 0 還原。 -->
+        <key>RAG_IMAGE_VISION_ONLY</key>
+        <string>1</string>
+        <!-- Google Chat 訊息常夾 ERP 截圖/報表圖，原本只存檔名佔位字、內容搜不到。開了這個
+             才會在 chat 同步時下載圖片附件、跑 macOS Vision OCR（本機免費、同 RAG_IMAGE_VISION_ONLY
+             不碰 Gemini）→ OCR 文字併進該則訊息一起 embed。只影響「之後新收到」的訊息；歷史圖片
+             走一次性 backfill 腳本補（見 scratchpad/backfill_chat_image_ocr.py 2026-07-01 已跑過
+             全 domain）。單 space 單輪上限 RAG_CHAT_IMAGE_OCR_CAP 預設 200。設 0 即時關。 -->
+        <key>RAG_CHAT_IMAGE_OCR</key>
+        <string>1</string>
+        <!-- Chat 圖片 OCR 抽不出字的純照片（鞋樣照/現場照）改打 Gemini flash 產生一兩句描述
+             一起 embed，讓純照片可語意搜尋。只在 OCR 空手時才呼叫（歷史普查無字圖僅 ~5%、
+             日增 <1 張，成本趨近零）；單 space 單輪上限 RAG_CHAT_IMAGE_CAPTION_CAP 預設 20。
+             需 RAG_CHAT_IMAGE_OCR 同開。設 0 即時關、回到純免費 OCR。 -->
+        <key>RAG_CHAT_IMAGE_CAPTION</key>
+        <string>1</string>
+        <!-- Drive content-hash 去重 scope：drive＝同 Shared Drive 內位元組相同的複本只索引
+             一份正本（複本記 duplicate_content marker 指向正本）。2026-07-31 普查：同 drive
+             跨 folder 複本（QUI TRÌNH SX.pdf ×72 這類複本文化）灌爆索引兩成多，並形成 HNSW
+             近重複團塊（召回缺陷溫床）。search_drive_docs folder 級查詢已有零命中自動放寬退
+             路。刪掉本 key（或設 folder）即回到「同 folder 才合併」的歷史行為。 -->
+        <key>RAG_DRIVE_DEDUP_SCOPE</key>
+        <string>drive</string>
+        <!-- Gmail 回信引用鏈剝除：thread 文本=全訊息串接、每封回信又引整串前文 → 二次方
+             膨脹（實測 16K chunks 巨獸 thread）＋同 thread 近重複團塊（HNSW 召回缺陷病灶）。
+             開了之後 thread 第 2 封起剝「>」行與歸屬標記後整段；首封與轉寄永不剝。只影響
+             之後有新活動的 thread（重抽自然變瘦、零額外 embed 費）。設 0 即回歷史行為。 -->
+        <key>RAG_GMAIL_STRIP_QUOTES</key>
+        <string>1</string>
+    </dict>
+</dict>
+</plist>

@@ -1,0 +1,25 @@
+#!/bin/bash
+# RED 工具權限分級檢視 — 看哪些工具屬 safe / confirm / dangerous / locked。
+#
+# 用法：
+#   ./bin/red-tiers              # 全部 4 級摘要
+#   ./bin/red-tiers locked       # 只列 LOCKED tier 的工具
+#   ./bin/red-tiers dangerous    # 列 DANGEROUS tier
+#   ./bin/red-tiers confirm
+#   ./bin/red-tiers safe
+
+set -e
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+REPO_ROOT="$( dirname "$SCRIPT_DIR" )"
+PYBIN="$REPO_ROOT/.venv/bin/python"
+if [ ! -x "$PYBIN" ]; then
+    echo "❌ 找不到 $PYBIN"
+    exit 1
+fi
+cd "$REPO_ROOT"
+exec "$PYBIN" -c "
+import sys
+from agent_core.tool_tiers import list_tools_by_tier
+tier = sys.argv[1] if len(sys.argv) > 1 else ''
+print(list_tools_by_tier(tier))
+" "$@"

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.xiaohong.product_photo_index</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>@@REPO_ROOT@@/.venv/bin/python</string>
+        <string>@@REPO_ROOT@@/scripts/build_product_photo_index.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>@@REPO_ROOT@@</string>
+
+    <!-- 每週日 12:30 增量重建產品照「以圖找圖」索引：掃全公司款號夾、Vision 特徵
+         指紋、resume 只抓新圖（幾分鐘）。時段避開夜跑(01:00-07:00)與每早生產回報
+         (08:00-12:00)，此時 Drive API 最閒。產品照集中在開發部、新款不多，每週一次夠。 -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>0</integer>
+        <key>Hour</key>
+        <integer>12</integer>
+        <key>Minute</key>
+        <integer>30</integer>
+    </dict>
+
+    <!-- load 時不自動跑，等排程時間。⚠️刻意「不設 KeepAlive」——KeepAlive
+         {SuccessfulExit=false} 會隱含 RunAtLoad，讓每次 redeploy bootstrap 立刻觸發
+         一輪全掃（見 rag_sync 的教訓）。本任務非關鍵，跑壞就等下週，不 respawn。 -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-product_photo_index.log</string>
+    <key>StandardErrorPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-product_photo_index.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+        <key>AGENT_DAEMON_MODE</key>
+        <string>1</string>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+    </dict>
+</dict>
+</plist>

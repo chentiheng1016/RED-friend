@@ -1,0 +1,15 @@
+#!/bin/bash
+# Run the RED post-deploy smoke suite with the repo-local virtualenv.
+
+set -e
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+REPO_ROOT="$( dirname "$SCRIPT_DIR" )"
+PYBIN="$REPO_ROOT/.venv/bin/python"
+
+if [ ! -x "$PYBIN" ]; then
+    echo "❌ 找不到 $PYBIN — 請先跑 setup.sh 建 venv"
+    exit 1
+fi
+
+cd "$REPO_ROOT"
+exec "$PYBIN" "$REPO_ROOT/scripts/post_deploy_smoke.py" "$@"

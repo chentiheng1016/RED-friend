@@ -1,0 +1,133 @@
+line-length = 120
+
+# 明確釘住規則集（2026-08-12）。原本這裡沒有 select，等於吃 ruff 的**預設**——
+# 而 ruff 0.16 把預設從 `E4,E7,E9,F` 大幅擴充（BLE/DTZ/S/SIM/UP/I/RUF/FURB…）。
+# #375 把下限提到 >=0.16.2、本機一升級，`make lint` 當場從全綠變成 4,014 個錯，
+# 但**沒有任何 CI 抓得到**：workflow 只跑 pre-commit（那邊自己釘 E9,F63,F7,F82）、
+# tests 與 audit，從來不跑 make lint。
+#
+# 這裡把「一直以來實際生效的那組」寫死，讓 lint 結果不再隨 ruff 版本漂移。
+# 新冒出來的那批規則（blind-except 1316 筆、datetime-without-tz 278 筆…）多半是
+# 真的可以改進的點，但那是另一個決定，不該由一次相依升級默默替我們決定。
+[lint]
+select = ["E4", "E7", "E9", "F", "S110", "S112"]
+
+# Legacy compatibility modules intentionally keep imported names available for
+# tests, monkeypatching, and old entrypoints. Several tests also insert the repo
+# root into sys.path before importing local modules.
+[lint.per-file-ignores]
+"agent.py" = ["F401", "E402"]
+"agent_daemon.py" = ["F401", "E402"]
+"agent_core/**/*.py" = ["F401"]
+"agent_core/log_redact.py" = ["E402", "S110", "S112"]  # +3 處靜默例外
+"agent_core/status_center.py" = ["E402", "S110", "S112"]  # +2 處靜默例外
+"agent_core/web_server/app.py" = ["E402", "S110", "S112"]  # +1 處靜默例外
+"launchd/scripts/*.py" = ["F401", "E402"]
+"scripts/*.py" = ["F401"]
+"skills/*.py" = ["F401"]
+"tests/**/*.py" = ["F401", "E402"]
+
+# ── 靜默例外處理的「已知債」清單（2026-08-12 建立）─────────────────────────
+# S110/S112 = `except …: pass` / `except …: continue`，例外被完全吞掉、不留痕跡。
+# 規則已開，讓**新的**靜默處理進不來；既有 215 處逐檔列在下面當可見的債，
+# 清一個檔就刪一行，數字只能往下走。
+#
+# 清法看情況，不是一律加 log：
+#   • 解析類（json.loads/strptime/int）→ 收窄成 (ValueError, TypeError)：預期
+#     情形行為不變、意外型別浮出來。已清 60 處（見同批 commit）。
+#   • best-effort 副作用（快取寫入、簽名查詢）→ logger.debug 記一行。
+#   • 熱迴圈內（遞迴走訪、逐列掃描）→ **不要**加 log，會洗爆日誌。
+#   • log 失敗的 except（log-in-log）→ 加 log 會遞迴，同上。
+"agent_core/accessibility.py" = ["S110", "S112"]  # 2
+"agent_core/actor_google_tools.py" = ["S110", "S112"]  # 2
+"agent_core/agents/gray_production/anomaly.py" = ["S110", "S112"]  # 1
+"agent_core/agents/orange_sales/customer_intel.py" = ["S110", "S112"]  # 1
+"agent_core/agents/telegram_command.py" = ["S110", "S112"]  # 3
+"agent_core/alert_pusher.py" = ["S110", "S112"]  # 2
+"agent_core/apps.py" = ["S110", "S112"]  # 3
+"agent_core/asr_glossary.py" = ["S110", "S112"]  # 2
+"agent_core/auto_skill.py" = ["S110", "S112"]  # 1
+"agent_core/browser_ops.py" = ["S110", "S112"]  # 1
+"agent_core/citation_feedback.py" = ["S110", "S112"]  # 1
+"agent_core/cost_tracker.py" = ["S110", "S112"]  # 2
+"agent_core/daemon_email_ingest.py" = ["S110", "S112"]  # 1
+"agent_core/daemon_helpers.py" = ["S110", "S112"]  # 7
+"agent_core/daemon_telegram.py" = ["S110", "S112"]  # 11
+"agent_core/daemon_watchdog.py" = ["S110", "S112"]  # 3
+"agent_core/dashboard.py" = ["S110", "S112"]  # 6
+"agent_core/dashboard_alerts.py" = ["S110", "S112"]  # 1
+"agent_core/dashboard_trends.py" = ["S110", "S112"]  # 1
+"agent_core/dashboard_web.py" = ["S110", "S112"]  # 1
+"agent_core/doc_export.py" = ["S110", "S112"]  # 4
+"agent_core/dry_run.py" = ["S110", "S112"]  # 2
+"agent_core/edge_tasks.py" = ["S110", "S112"]  # 3
+"agent_core/email_classify.py" = ["S110", "S112"]  # 2
+"agent_core/email_lake.py" = ["S110", "S112"]  # 1
+"agent_core/erp_oracle_client.py" = ["S110", "S112"]  # 2
+"agent_core/erp_security_patrol.py" = ["S110", "S112"]  # 2
+"agent_core/erp_stock_query.py" = ["S110", "S112"]  # 2
+"agent_core/eval_rag.py" = ["S110", "S112"]  # 1
+"agent_core/factory_bom.py" = ["S110", "S112"]  # 1
+"agent_core/factory_warehouse.py" = ["S110", "S112"]  # 1
+"agent_core/factory_warehouse_extract.py" = ["S110", "S112"]  # 3
+"agent_core/fx_rates.py" = ["S110", "S112"]  # 1
+"agent_core/gemini_client.py" = ["S110", "S112"]  # 2
+"agent_core/gmail_ops.py" = ["S110", "S112"]  # 1
+"agent_core/ingest/acl_reconcile.py" = ["S110", "S112"]  # 1
+"agent_core/ingest/drive_sync.py" = ["S110", "S112"]  # 9
+"agent_core/ingest/sync_guard.py" = ["S110", "S112"]  # 1
+"agent_core/ingest/vector_store.py" = ["S110", "S112"]  # 3
+"agent_core/intent_router.py" = ["S110", "S112"]  # 2
+"agent_core/internal_emails_store.py" = ["S110", "S112"]  # 1
+"agent_core/line_bot.py" = ["S110", "S112"]  # 1
+"agent_core/memory.py" = ["S110", "S112"]  # 1
+"agent_core/memory_ops.py" = ["S110", "S112"]  # 1
+"agent_core/mistake_ledger.py" = ["S110", "S112"]  # 2
+"agent_core/mode_manager.py" = ["S110", "S112"]  # 4
+"agent_core/mode_policy.py" = ["S110", "S112"]  # 1
+"agent_core/operational_db.py" = ["S110", "S112"]  # 2
+"agent_core/oracle_probe.py" = ["S110", "S112"]  # 2
+"agent_core/path_safety.py" = ["S110", "S112"]  # 1
+"agent_core/policy_engine.py" = ["S110", "S112"]  # 3
+"agent_core/purchasing_brief.py" = ["S110", "S112"]  # 2
+"agent_core/qc.py" = ["S110", "S112"]  # 1
+"agent_core/rag_coverage.py" = ["S110", "S112"]  # 1
+"agent_core/rag_gateway.py" = ["S110", "S112"]  # 1
+"agent_core/rag_sync_health.py" = ["S110", "S112"]  # 1
+"agent_core/repl.py" = ["S110", "S112"]  # 1
+"agent_core/run_history.py" = ["S110", "S112"]  # 4
+"agent_core/scheduler.py" = ["S110", "S112"]  # 2
+"agent_core/shell_python_web.py" = ["S110", "S112"]  # 1
+"agent_core/sub_agents.py" = ["S110", "S112"]  # 2
+"agent_core/task_memory.py" = ["S110", "S112"]  # 4
+"agent_core/task_queue.py" = ["S110", "S112"]  # 8
+"agent_core/telegram.py" = ["S110", "S112"]  # 4
+"agent_core/telegram_audit.py" = ["S110", "S112"]  # 3
+"agent_core/tg_auth.py" = ["S110", "S112"]  # 7
+"agent_core/tool_annotations.py" = ["S110", "S112"]  # 1
+"agent_core/tool_budgets.py" = ["S110", "S112"]  # 4
+"agent_core/tool_rpc_server.py" = ["S110", "S112"]  # 1
+"agent_core/tool_worker_exec.py" = ["S110", "S112"]  # 6
+"agent_core/vault.py" = ["S110", "S112"]  # 1
+"agent_core/video_eval.py" = ["S110", "S112"]  # 2
+"agent_core/video_understanding.py" = ["S110", "S112"]  # 3
+"agent_core/vision_ops.py" = ["S110", "S112"]  # 4
+"agent_core/vision_rpa_engine.py" = ["S110", "S112"]  # 2
+"agent_core/web_access_guard.py" = ["S110", "S112"]  # 1
+"agent_core/window_mgmt.py" = ["S110", "S112"]  # 2
+"agent_core/workflow.py" = ["S110", "S112"]  # 2
+"scripts/backfill_bge_collections.py" = ["S110", "S112"]  # 1
+"scripts/build_product_photo_index.py" = ["S110", "S112"]  # 1
+"scripts/eval_quant_expert.py" = ["S110", "S112"]  # 2
+"scripts/migrate_embed_dim_768.py" = ["S110", "S112"]  # 1
+"scripts/reembed_gmail_768.py" = ["S110", "S112"]  # 2
+"skills/image_gen.py" = ["S110", "S112"]  # 1
+"skills/pdf_ops.py" = ["S110", "S112"]  # 5
+"skills/product_photo_search.py" = ["S110", "S112"]  # 1
+"skills/sample_order.py" = ["S110", "S112"]  # 2
+"skills/taiwan_public_2.py" = ["S110", "S112"]  # 1
+"skills/warehouse_box_ocr.py" = ["S110", "S112"]  # 2
+"tests/conftest.py" = ["S110", "S112"]  # 1
+"tests/test_gemini_client_retry.py" = ["S110", "S112"]  # 1
+"tests/test_security_regressions.py" = ["S110", "S112"]  # 1
+"tests/test_vector_store_embed_resilience.py" = ["S110", "S112"]  # 1

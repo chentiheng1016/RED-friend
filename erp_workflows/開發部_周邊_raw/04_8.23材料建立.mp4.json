@@ -1,0 +1,148 @@
+{
+  "task_name": "開發料編碼規則建立與新料號編定",
+  "video_summary": "示範在樣品維護中建立EVA材料編碼規則、新增參數並生成新料號。",
+  "erp_name": "FAST ERP (Oracle Forms)",
+  "prerequisites": "已登入系統並進入「樣品資料維護建立」功能畫面。",
+  "menu_path": "開發管理 → 樣品資料維護建立 → [按鈕] 編新料號",
+  "steps": [
+    {
+      "n": 1,
+      "action": "click",
+      "target_description": "畫面中段左側的「編新料號」灰色長型按鈕",
+      "visual_cue": "編新料號",
+      "why": "開啟新料號編排與屬性設定窗口"
+    },
+    {
+      "n": 2,
+      "action": "select",
+      "target_description": "彈出視窗左上角的「材料大類」下拉選單",
+      "visual_cue": "材料大類",
+      "example_value": "EVA",
+      "why": "決定材料的基本分類與編碼規則"
+    },
+    {
+      "n": 3,
+      "action": "click",
+      "target_description": "屬性欄位（如厚度、硬度）下方的「查詢」按鈕",
+      "visual_cue": "查詢",
+      "why": "呼叫出該屬性已存在的代碼清單"
+    },
+    {
+      "n": 4,
+      "action": "click",
+      "target_description": "工具列上的「插入」綠色加號圖示",
+      "visual_cue": "插入圖示",
+      "why": "當現有選單沒有需要的參數（如7mm厚度）時，新增一筆參數資料"
+    },
+    {
+      "n": 5,
+      "action": "fill",
+      "target_description": "屬性編輯區的「代碼」、「名稱(繁中)」、「名稱(英文)」等欄位",
+      "visual_cue": "代碼 / 名稱(繁中) / 名稱(英文)",
+      "example_value": "代碼: T00070, 名稱: 7mm",
+      "why": "定義新屬性參數的細節"
+    },
+    {
+      "n": 6,
+      "action": "click",
+      "target_description": "屬性編輯區右側的「向上箭頭」按鈕",
+      "visual_cue": "向上箭頭圖標",
+      "why": "將選定的參數值帶入上方料號組成區"
+    },
+    {
+      "n": 7,
+      "action": "select",
+      "target_description": "畫面右側的「庫存單位」下拉選單",
+      "visual_cue": "庫存單位",
+      "example_value": "PRS (雙)",
+      "why": "設定材料的計量單位"
+    },
+    {
+      "n": 8,
+      "action": "click",
+      "target_description": "畫面右下方的顏色勾選框",
+      "visual_cue": "白色 / 黑色 勾選框",
+      "why": "選擇該料號適用的顏色組合"
+    },
+    {
+      "n": 9,
+      "action": "select",
+      "target_description": "顏色下方的「採購廠商」選單",
+      "visual_cue": "採購廠商",
+      "why": "指定材料的預設供應商"
+    },
+    {
+      "n": 10,
+      "action": "click",
+      "target_description": "「分Size」標籤旁的勾選框",
+      "visual_cue": "分Size",
+      "why": "定義材料是否依尺寸區分庫存"
+    },
+    {
+      "n": 11,
+      "action": "click",
+      "target_description": "視窗右上方的「確認」打勾按鈕",
+      "visual_cue": "打勾圖示",
+      "why": "根據設定組合生成暫存料號清單"
+    },
+    {
+      "n": 12,
+      "action": "click",
+      "target_description": "工具列或畫面中段的「生效」按鈕",
+      "visual_cue": "生效",
+      "why": "正式將暫存料號轉為正式料號，生效後不可刪除"
+    }
+  ],
+  "fields_schema": {
+    "材料大類": {
+      "type": "dropdown",
+      "required": true,
+      "example": "EVA"
+    },
+    "屬性代碼": {
+      "type": "string",
+      "required": true,
+      "example": "T00070",
+      "notes": "需符合編碼規則"
+    },
+    "屬性名稱": {
+      "type": "string",
+      "required": true,
+      "example": "7mm"
+    },
+    "庫存單位": {
+      "type": "dropdown",
+      "required": true,
+      "example": "PRS"
+    },
+    "顏色": {
+      "type": "checkbox",
+      "required": true,
+      "example": "黑色"
+    },
+    "採購廠商": {
+      "type": "dropdown",
+      "required": false,
+      "example": "金利"
+    },
+    "分Size": {
+      "type": "boolean",
+      "required": false,
+      "example": true
+    }
+  },
+  "validation": "操作成功後，系統下方列表會出現生成的料號，且狀態從「新單」變更為「生效」。",
+  "common_pitfalls": [
+    "代碼輸入錯誤可能導致與現有編碼規則衝突",
+    "未點擊向上箭頭，參數將無法帶入料號組成區",
+    "生效後發現名稱錯誤，由於生效鎖定，必須重新建立一筆"
+  ],
+  "narrator_tips": [
+    "生效按鈕點擊前務必核對名稱與編碼，因為一旦生效即無法刪除或修改編碼/名稱",
+    "若非編碼/名稱的錯誤（如單位或廠商填錯），可使用「生效修改」功能進行微調",
+    "厚度定義應以採購時的要求（如壓好後的厚度）為準"
+  ],
+  "_video_name": "8.23材料建立.mp4",
+  "_video_path": "開發部教學",
+  "_video_index": 4
+}

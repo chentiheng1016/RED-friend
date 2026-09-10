@@ -1,0 +1,136 @@
+import os
+import json
+import base64
+import sys
+import io
+import requests
+import shutil
+import matplotlib.pyplot as plt
+from bs4 import BeautifulSoup
+from google import genai
+from google.genai import types
+from ddgs import DDGS
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from email.mime.text import MIMEText
+
+# --- ⚠️ 填入你的 Gemini API Key ---
+client = genai.Client(api_key="你的_GEMINI_API_KEY_貼在這裡")
+
+SCOPES = ['https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/gmail.send']
+MEMORY_FILE = "memory.json"
+
+# --- 🌟 檔案管家 ---
+def manage_files(action: str, target: str, destination: str = None):
+    print(f"\n[系統日誌] 📁 檔案操作：{action} -> {target}")
+    try:
+        if action == 'mkdir': os.makedirs(target, exist_ok=True); return f"已建立資料夾 {target}"
+        if action == 'delete': 
+            if os.path.isfile(target): os.remove(target)
+            else: shutil.rmtree(target)
+            return f"已刪除 {target}"
+        if action == 'move': shutil.move(target, destination); return f"已移動至 {destination}"
+        return "未知操作"
+    except Exception as e: return f"檔案操作失敗：{e}"
+
+# --- 🌟 郵件助手 ---
+def get_gmail_service():
+    creds = None
+    if os.path.exists('token.json'): creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token: creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+        with open('token.json', 'w') as token: token.write(creds.to_json())
+    return build('gmail', 'v1', credentials=creds)
+
+def send_gmail(to: str, subject: str, body: str):
+    print(f"\n[系統日誌] 📧 正在發信給 {to}...")
+    try:
+        service = get_gmail_service()
+        message = MIMEText(body)
+        message['to'] = to; message['subject'] = subject
+        raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
+        service.users().messages().send(userId='me', body={'raw': raw}).execute()
+        return "郵件發送成功！"
+    except Exception as e: return f"發信失敗：{e}"
+
+def search_gmail(query: str):
+    print(f"\n[系統日誌] 🔍 搜尋郵件：{query}...")
+    try:
+        service = get_gmail_service()
+        results = service.users().messages().list(userId='me', q=query, maxResults=3).execute()
+        messages = results.get('messages', [])
+        output = []
+        for m in messages:
+            msg = service.users().messages().get(userId='me', id=m['id']).execute()
+            subj = next(h['value'] for h in msg['payload']['headers'] if h['name'] == 'Subject')
+            output.append(f"ID: {m['id']} | 主旨: {subj}")
+        return "\n".join(output) if output else "找不到相關郵件。"
+    except Exception as e: return f"搜尋失敗：{e}"
+
+# --- 🌟 Python 與繪圖 ---
+def run_python_code(code: str):
+    print(f"\n[系統日誌] 🐍 執行 Python (支援繪圖)...")
+    old_stdout = sys.stdout; sys.stdout = io.StringIO()
+    try:
+        plt.rcParams['font.sans-serif'] = ['Arial Unicode MS']
+        plt.rcParams['axes.unicode_minus'] = False
+        exec(code, {"os": os, "json": json, "plt": plt, "requests": requests, "shutil": shutil})
+        result = sys.stdout.getvalue(); sys.stdout = old_stdout
+        return result or "執行成功（無輸出）"
+    except Exception as e: sys.stdout = old_stdout; return f"Python 錯誤：{e}"
+
+# --- 🌟 網頁閱讀與搜尋 ---
+def read_website_content(url: str):
+    print(f"\n[系統日誌] 📖 閱讀：{url}...")
+    try:
+        res = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
+        res.encoding = 'utf-8'
+        soup = BeautifulSoup(res.text, 'html.parser')
+        for s in soup(["script", "style", "nav", "footer", "header"]): s.decompose()
+        return soup.get_text(separator='\n')[:4000]
+    except Exception as e: return f"閱讀失敗：{e}"
+
+def search_the_web(query: str):
+    print(f"\n[系統日誌] 🌐 搜尋：{query}...")
+    try:
+        results = DDGS().text(query, max_results=3)
+        return "\n".join([f"標題: {r['title']}\n網址: {r['href']}" for r in results])
+    except Exception as e: return f"搜尋失敗：{e}"
+
+def save_memory(key: str, value: str):
+    memory = {}
+    if os.path.exists(MEMORY_FILE):
+        with open(MEMORY_FILE, "r", encoding="utf-8") as f: memory = json.load(f)
+    memory[key] = value
+    with open(MEMORY_FILE, "w", encoding="utf-8") as f: json.dump(memory, f, ensure_ascii=False)
+    return f"已記住 {key}"
+
+# --- 啟動 Agent ---
+tools_list = [
+    manage_files, send_gmail, search_gmail, run_python_code, 
+    read_website_content, search_the_web, save_memory
+]
+
+# 關鍵：把原本成功運行的 2.5 版本加回來！
+chat = client.chats.create(
+    model="gemini-2.5-flash", 
+    config=types.GenerateContentConfig(tools=tools_list)
+)
+
+print("========================================")
+print("🏆 真・全能 Agent 6.0 啟動！（已修正模型版本錯誤）")
+print("========================================\n")
+
+while True:
+    user_input = input("你：")
+    if user_input.lower() in ['quit', 'exit']: break
+    try:
+        response = chat.send_message(user_input)
+        print(f"\nAgent：{response.text}\n")
+    except Exception as e:
+        print(f"系統發生錯誤：{e}\n")

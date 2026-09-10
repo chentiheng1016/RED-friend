@@ -1,0 +1,112 @@
+{
+  "task_name": "樣品單建立、用量修改與調料需求彙總作業",
+  "video_summary": "教授樣品單BOM複製、資料補全生效及轉調料需求之完整流程。",
+  "erp_name": "FAST ERP",
+  "prerequisites": "已登入系統並具有開發管理模組的操作權限。",
+  "menu_path": "主選單 → 開發管理 → 樣品單建立",
+  "steps": [
+    {
+      "n": 1,
+      "action": "click",
+      "target_description": "中間分頁標籤右側的「產生其他鞋款BOM」按鈕",
+      "visual_cue": "產生其他鞋款BOM",
+      "why": "快速將現有的BOM結構複製到該樣品編號下的其他配色。"
+    },
+    {
+      "n": 2,
+      "action": "select",
+      "target_description": "彈出視窗「Color Way List」中的配色清單",
+      "visual_cue": "Color/Way 列",
+      "example_value": "CA 或 QQ",
+      "why": "選擇要產生BOM的配色。"
+    },
+    {
+      "n": 3,
+      "action": "fill",
+      "target_description": "表格中紅色必填的「需求日期」與「Size」欄位",
+      "visual_cue": "紅色背景單元格",
+      "example_value": "2023/04/04, Size: 1",
+      "why": "定義樣品需求的時間與規格數量。"
+    },
+    {
+      "n": 4,
+      "action": "click",
+      "target_description": "畫面左上角的「儲存」圖示（磁碟片形狀）",
+      "visual_cue": "floppy disk icon",
+      "why": "儲存剛建立或修改的配色資料。"
+    },
+    {
+      "n": 5,
+      "action": "click",
+      "target_description": "分頁標籤上方的「生效作業」按鈕",
+      "visual_cue": "生效作業",
+      "why": "將樣品單轉為生效狀態，鎖定資料不可隨意修改。"
+    },
+    {
+      "n": 6,
+      "action": "observe",
+      "target_description": "系統彈出的錯誤提示訊息",
+      "visual_cue": "提示視窗顯示序號與部位",
+      "why": "檢查資料是否齊全（如漏填色號），紅字欄位必須補齊後才能生效。"
+    },
+    {
+      "n": 7,
+      "action": "click",
+      "target_description": "右側功能區的「轉需求彙總」按鈕",
+      "visual_cue": "轉需求彙總",
+      "why": "將已生效的樣品需求進行物料統計。"
+    },
+    {
+      "n": 8,
+      "action": "select",
+      "target_description": "調料需求彙總畫面中的「調料來源」下拉選單",
+      "visual_cue": "調料來源 (如：樣品倉、廠商、量產倉)",
+      "example_value": "1-廠商",
+      "why": "決定物料是要向廠商採購，還是從樣品倉或量產倉領用。"
+    },
+    {
+      "n": 9,
+      "action": "click",
+      "target_description": "畫面右上方的「產生調料單」按鈕",
+      "visual_cue": "產生調料單",
+      "why": "正式產生調料單據（單號會顯示在右下角）。"
+    }
+  ],
+  "fields_schema": {
+    "需求日期": {
+      "type": "date",
+      "required": true,
+      "example": "2023/04/05"
+    },
+    "Size數量": {
+      "type": "number",
+      "required": true,
+      "example": "1"
+    },
+    "調料來源": {
+      "type": "select",
+      "required": true,
+      "example": "樣品倉"
+    },
+    "調料數": {
+      "type": "number",
+      "required": false,
+      "example": "10",
+      "notes": "可手動修改實際調料數量"
+    }
+  },
+  "validation": "样品單狀態變更為「彙總」，且畫面右下角出現調料單號 (如 FC2023040003)。",
+  "common_pitfalls": [
+    "若主料沒有對應的「料品編碼」，彙總時系統會報錯，需先點擊「編新料號」補齊資料。",
+    "生效後的樣品單如需修改，必須點擊「樣品用量修改」按鈕解鎖（需權限）。"
+  ],
+  "narrator_tips": [
+    "「產生其他鞋款BOM」是快速建立多配色樣品單的捷徑，不用手動一筆筆輸入。",
+    "系統會自動帶入已報價的物料單價，若單價空白表示該物料尚未建立報價單。",
+    "彙總時可查看樣品倉與量產倉的現有庫存，輔助決定調料來源。",
+    "修改單價功能有權限管制，並會記錄不同的用量版本號。"
+  ],
+  "_video_name": "開發2.mp4 (第 3/3 段)",
+  "_split_part": 3,
+  "_total_parts": 3
+}

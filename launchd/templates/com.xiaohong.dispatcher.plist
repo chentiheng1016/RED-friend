@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.xiaohong.dispatcher</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>@@REPO_ROOT@@/.venv/bin/python</string>
+        <string>@@REPO_ROOT@@/agent_daemon.py</string>
+        <string>--task</string>
+        <string>dispatcher</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>@@REPO_ROOT@@</string>
+
+    <!-- 每 300 秒 = 5 分鐘掃描一次 daemon_tasks.json；是否真的觸發由各 task 的 interval 決定 -->
+    <key>StartInterval</key>
+    <integer>300</integer>
+
+    <key>StandardOutPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-dispatcher.log</string>
+    <key>StandardErrorPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-dispatcher.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- 整個 fleet 的 Gemini model；preview tier 高負載會回 503，
+             用 gemini-flash-latest 較穩。改完跑 redeploy-daemons -f。 -->
+        <key>RED_GEMINI_MODEL</key>
+        <string>gemini-flash-latest</string>
+        <key>RED_GEMINI_FALLBACK_MODEL</key>
+        <string>gemini-2.5-flash-lite</string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+        <key>RED_CHROMA_HTTP_URL</key>
+        <string>http://127.0.0.1:8000</string>
+        <key>RED_EMBED_DIM</key>
+        <string>768</string>
+        <!-- ERP 直讀（飛越 Oracle 10g）：排程 daily_production_alert 需要在
+             dispatcher 內查得 query_erp_order_materials 的缺料明細。RED 走 SSH
+             到主機跑它自己的 10g sqlplus（macOS 連不到 10g）。金鑰
+             ~/.ssh/id_erp_jhdb。見 docs/erp_db_readonly_design.md。 -->
+        <key>RED_ERP_ORACLE_ENABLED</key>
+        <string>1</string>
+        <key>RED_ERP_SSH_KEY</key>
+        <string>/Users/user/.ssh/id_erp_jhdb</string>
+    </dict>
+
+    <!-- 開機/載入時立刻跑一次，避免要等 5 分鐘才啟動 -->
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Chroma vector DB server — single process that owns var/data/chroma_db.
+
+  This template is NOT loaded by default. To roll out the multi-process-safe
+  Chroma backend:
+
+    1. Install + load this plist:
+         ./bin/redeploy-daemons chroma -f
+       (or copy to ~/Library/LaunchAgents and `launchctl bootstrap`)
+
+    2. Verify the server is up:
+         curl http://127.0.0.1:8000/api/v2/heartbeat
+       Expected: {"nanosecond heartbeat": ...}
+
+    3. Point clients at it by setting RED_CHROMA_HTTP_URL in each daemon
+       plist's EnvironmentVariables:
+         <key>RED_CHROMA_HTTP_URL</key>
+         <string>http://127.0.0.1:8000</string>
+       Then reload that daemon.
+
+    4. Processes without the env var do NOT silently fall back anymore:
+       chroma_backend probes this server's heartbeat and refuses to open a
+       PersistentClient while it answers (RuntimeError). For offline
+       maintenance (server stopped) or a scratch index, set
+       RED_CHROMA_ALLOW_DIRECT=1 to bypass the guard explicitly.
+
+  Why a separate process: ChromaDB's PersistentClient holds SQLite handles
+  that aren't safe to share across processes. ~14 launchd daemons (telegram,
+  telegram_blue/green/indigo/orange/yellow, email_ingest, briefing_15min,
+  morning, ponder, mailcheck, sample_check, health_check, dispatcher) all
+  touch the vector store; running them against a single chroma server
+  serializes writes correctly without per-daemon file locks.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.xiaohong.chroma</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>@@REPO_ROOT@@/.venv/bin/chroma</string>
+        <string>run</string>
+        <string>--path</string>
+        <string>@@REPO_ROOT@@/var/data/chroma_db</string>
+        <string>--host</string>
+        <string>127.0.0.1</string>
+        <string>--port</string>
+        <string>8000</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>@@REPO_ROOT@@</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>StandardOutPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-chroma.log</string>
+    <key>StandardErrorPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-chroma.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- 整個 fleet 的 Gemini model；preview tier 高負載會回 503，
+             用 gemini-flash-latest 較穩。改完跑 redeploy-daemons -f。 -->
+        <key>RED_GEMINI_MODEL</key>
+        <string>gemini-flash-latest</string>
+        <key>RED_GEMINI_FALLBACK_MODEL</key>
+        <string>gemini-2.5-flash-lite</string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+        <!-- Bind to loopback only; we don't want external clients hitting
+             this in production. If you need remote access, use ssh tunnel. -->
+        <key>ANONYMIZED_TELEMETRY</key>
+        <string>FALSE</string>
+        <key>RED_EMBED_DIM</key>
+        <string>768</string>
+    </dict>
+</dict>
+</plist>

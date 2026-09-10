@@ -1,0 +1,54 @@
+#!/bin/bash
+# RED 網頁 dashboard — 用瀏覽器看視覺化版本（含 SVG cost 直條圖、alert banner）。
+#
+# 用法：
+#   ./bin/red-web                # 一次性產生 HTML 並用瀏覽器開
+#   ./bin/red-web --serve        # 跑 localhost:8765 server，瀏覽器自動 refresh
+#   ./bin/red-web --port 9000    # 自訂 port（搭 --serve）
+#
+# 安全：
+#   - 只 bind 127.0.0.1（不對外）
+#   - 只接 GET，無寫入端點
+#   - 內容跟 `./bin/red-status` 同源（過 sanitize_for_llm + log_redact）
+
+set -e
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+REPO_ROOT="$( dirname "$SCRIPT_DIR" )"
+PYBIN="$REPO_ROOT/.venv/bin/python"
+if [ ! -x "$PYBIN" ]; then
+    echo "❌ 找不到 $PYBIN — 先跑 setup.sh"
+    exit 1
+fi
+cd "$REPO_ROOT"
+
+MODE="oneshot"
+PORT="8765"
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --serve)  MODE="serve"; shift;;
+        --port)   PORT="$2"; shift 2;;
+        --help|-h)
+            echo "Usage: $0 [--serve] [--port PORT]"
+            echo "  (no flag)    一次性產生 HTML 並用瀏覽器開"
+            echo "  --serve      跑 localhost http server，自動刷新"
+            echo "  --port N     server 監聽的 port（預設 8765）"
+            exit 0
+            ;;
+        *) echo "未知參數：$1"; exit 1;;
+    esac
+done
+
+if [ "$MODE" = "serve" ]; then
+    exec "$PYBIN" -c "
+from agent_core.dashboard_web import serve_dashboard
+serve_dashboard(port=$PORT, open_browser=True)
+"
+else
+    exec "$PYBIN" -c "
+from agent_core.dashboard_web import open_dashboard_in_browser
+path = open_dashboard_in_browser()
+print(f'✅ HTML 產生於 {path}')
+print('   已嘗試用預設瀏覽器開')
+print('   或可用 --serve 跑 live 模式（瀏覽器 auto-refresh）')
+"
+fi

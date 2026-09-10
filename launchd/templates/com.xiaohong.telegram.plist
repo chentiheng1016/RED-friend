@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.xiaohong.telegram</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>@@REPO_ROOT@@/.venv/bin/python</string>
+        <string>@@REPO_ROOT@@/agent_daemon.py</string>
+        <string>--task</string>
+        <string>telegram_bot</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>@@REPO_ROOT@@</string>
+
+    <!-- 這個 daemon 是常駐 long-polling，需要 RunAtLoad + KeepAlive -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+
+    <!-- 至少等 10 秒再重啟，避免瘋狂 respawn -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>StandardOutPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-telegram.log</string>
+    <key>StandardErrorPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-telegram.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- 整個 fleet 的 Gemini model；preview tier 高負載會回 503，
+             用 gemini-flash-latest 較穩。改完跑 redeploy-daemons -f。 -->
+        <key>RED_GEMINI_MODEL</key>
+        <string>gemini-flash-latest</string>
+        <key>RED_GEMINI_FALLBACK_MODEL</key>
+        <string>gemini-2.5-flash-lite</string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+        <!-- 讓 print() 立刻寫進 log 不被 Python block-buffer 吞 10 分鐘 -->
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+        <key>RED_TELEGRAM_BOT_USERNAME</key>
+        <string>example_red_bot</string>
+        <!-- 員工自由對話（非 red 色員工私訊走受限 Gemini 對話）：逗號分隔
+             色清單，或 1/all 全開；空 = 關。工具面 = dept_tool_scope per-color
+             白名單 ∩ SAFE tier，RAG 以該色 ACL 查詢。 -->
+        <key>RED_TG_EMPLOYEE_FREEFORM</key>
+        <string>all</string>
+        <!-- Tool execution isolation: proxy only stateless diagnostics by default.
+             Stateful tools (browser/audio/live sessions) stay direct until they
+             get dedicated sticky workers. -->
+        <key>RED_TOOL_RPC_TELEGRAM</key>
+        <string>1</string>
+        <key>RED_TOOL_RPC_PROXY_MODE</key>
+        <string>diagnostics</string>
+        <key>RED_TOOL_RPC_TOOL_TIMEOUT_S</key>
+        <string>300</string>
+        <key>RED_CHROMA_HTTP_URL</key>
+        <string>http://127.0.0.1:8000</string>
+        <!-- 飛越 ERP 唯讀查詢（query_erp_order / _materials）：RED 走 SSH 在 ERP 主機
+             跑它自己的 10g sqlplus（macOS 連不到 10g）。金鑰 ~/.ssh/id_erp_jhdb，
+             主機 SSH 已 key-only 硬化。見 docs/erp_db_readonly_design.md。 -->
+        <key>RED_ERP_ORACLE_ENABLED</key>
+        <string>1</string>
+        <key>RED_ERP_SSH_KEY</key>
+        <string>/Users/user/.ssh/id_erp_jhdb</string>
+        <!-- 影片深度分析的 Video Intelligence 證據源（shot/text 標註）。
+             GCP 按分鐘計費（shot $0.05/min + text $0.15/min），只開主 bot；
+             專案 gold-fiber-492814-d9 已啟用該 API（2026-06-12）。 -->
+        <key>RED_VIDEO_INTEL_ENABLE</key>
+        <string>1</string>
+        <!-- 額外授權 Telegram 使用者 — 正式做法是 employee registry
+             （var/data/employee_registry.json，admin 後台或 register_employee）：
+             registry 綁 telegram_user_id 後自帶 email/name 身分，且非 owner
+             的 actor 會被 telegram_actor_scope 移除 owner-only 工具（寄信 /
+             shell / 大王個人 Gmail 等），跟大王的指令完全區隔。
+             例：employee@example.com ↔ chat_id（2026-06-13 起改走 registry）。
+
+             RED_TELEGRAM_AGENT_CHATS（color:chat_id，逗號分隔）只留作緊急
+             fallback — 沒有 email 身分，僅入站閘門 + 部門色。registry 條目
+             會覆蓋同 chat_id 的 env 條目。
+             RED_AUTHORIZED_CHAT_IDS: 出站工具（telegram_push / send_file）
+             可主動發給這些 chat_id（逗號分隔）。
+             撤銷使用者：registry 移除繫結 + 從 RED_AUTHORIZED_CHAT_IDS 拿掉
+             後 redeploy-daemons telegram。 -->
+        <key>RED_TELEGRAM_AGENT_CHATS</key>
+        <string></string>
+        <key>RED_AUTHORIZED_CHAT_IDS</key>
+        <!-- 各 chat_id 對應的員工身分不在 repo 內維護（repo 曾公開曝露）：
+             對照見 employee registry（var/data/employee_registry.json）。 -->
+        <string></string>
+        <key>RED_EMBED_DIM</key>
+        <string>768</string>
+            <!-- 員工自然語言查詢的語意搜尋（RAG + search_emails/search_docs）。
+             1=開；依賴 chroma post-filter(PR#292) 讓 ACL filtered 查詢 <0.5s。 -->
+        <key>RED_EMPLOYEE_NLP_SEMANTIC_SEARCH</key>
+        <string>1</string>
+</dict>
+</dict>
+</plist>

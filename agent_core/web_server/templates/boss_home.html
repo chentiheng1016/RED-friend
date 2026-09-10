@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}總覽 — 小紅員工入口{% endblock %}
+{% block extra_style %}
+.dept-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px; }
+.dept-card { background: white; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.08);
+             padding: 20px; text-align: center; text-decoration: none; color: #333;
+             transition: box-shadow .2s, transform .1s; }
+.dept-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.15); transform: translateY(-2px); }
+.dept-card .icon { font-size: 2rem; margin-bottom: 8px; }
+.dept-card .name { font-weight: 600; font-size: 1rem; }
+.dept-card .color { font-size: .8rem; color: #999; margin-top: 2px; }
+.admin-link { display: inline-block; margin-top: 24px; font-size: .9rem; color: #888; }
+.admin-link:hover { color: #c0392b; }
+{% endblock %}
+{% block content %}
+<div class="card">
+  <h2 style="margin-bottom:20px">👑 管理員總覽 — 選擇部門</h2>
+  <div class="dept-grid">
+    {% for color, label in depts.items() %}
+    <a href="/dept/{{ color }}" class="dept-card">
+      <div class="icon">
+        {% if color == "red" %}🔴
+        {% elif color == "orange" %}🟠
+        {% elif color == "yellow" %}🟡
+        {% elif color == "green" %}🌿
+        {% elif color == "blue" %}🔵
+        {% elif color == "indigo" %}🫙
+        {% elif color == "purple" %}🟣
+        {% elif color == "gray" %}⚙️
+        {% elif color == "black" %}⚫
+        {% elif color == "white" %}⚪
+        {% else %}❓{% endif %}
+      </div>
+      <div class="name">{{ label }}</div>
+      <div class="color">{{ color }}</div>
+    </a>
+    {% endfor %}
+  </div>
+  <a href="/admin/employees" class="admin-link">⚙️ 管理員工帳號</a>
+</div>
+{% endblock %}
