@@ -3,7 +3,7 @@
 # deps-check: separate-venv=box_ocr
 #   ↑ 這行是給 agent_core/deps_check 讀的，`=` 後面是 venv 名（＝
 #     RUNTIME_ROOT/venvs/box_ocr）。它有兩個作用：
-#       1. 本檔釘的版本**不拿去跟主 .venv 比**。實例：本檔釘 onnxruntime==1.28.0，
+#       1. 本檔釘的版本**不拿去跟主 .venv 比**。實例：本檔釘 onnxruntime==1.29.0，
 #          而主 venv 也有 onnxruntime（chromadb 的傳遞依賴）——兩者無關，硬比會
 #          天天報「venv 與 requirements 不符」，照它建議 pip install 還會動到
 #          chromadb 解出來的版本。
@@ -22,4 +22,4 @@
 #   .venv/bin/pip-audit -r requirements-box-ocr.txt
 paddleocr==3.7.0
 paddlex==3.7.2
-onnxruntime==1.28.0
+onnxruntime==1.29.0

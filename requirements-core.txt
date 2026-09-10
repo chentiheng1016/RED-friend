@@ -3,16 +3,16 @@
 # reproducible and one surprise upstream CVE can't silently change resolution.
 # Dependabot (weekly, pip group) opens bump PRs to keep these current.
 # Range pins (>=) are deliberate floors for security-sensitive libs — leave them.
-google-genai==2.17.0
-google-auth-oauthlib==1.4.0
-google-api-python-client==2.198.0
-google-cloud-bigquery==3.43.0
+google-genai==2.22.0
+google-auth-oauthlib==1.4.1
+google-api-python-client==2.200.0
+google-cloud-bigquery==3.45.0
 google-cloud-secret-manager==2.30.0
-google-cloud-firestore==2.28.1
+google-cloud-firestore==2.30.0
 google-cloud-videointelligence==2.20.0
-numpy==2.5.1
-scipy==1.18.0
-sounddevice==0.5.5
+numpy==2.5.3
+scipy==1.18.1
+sounddevice==0.5.6
 soundfile==0.14.0
 requests==2.34.2
 urllib3>=2.7.0,<3
@@ -20,17 +20,17 @@ beautifulsoup4==4.15.0
 # XML 硬化：解析 untrusted 文件（Drive Office XML、DASH manifest）走 defusedxml，
 # 擋 billion-laughs / 外部實體。之前僅為傳遞依賴（未釘版），改直接依賴並釘版。
 defusedxml==0.7.1
-ddgs==9.14.4
+ddgs==9.16.0
 youtube-transcript-api==1.2.4
-yt-dlp==2026.7.4
+yt-dlp==2026.8.19
 pydantic>=2.13.4
 cryptography>=50.0.0
 matplotlib==3.11.1
 pandas==2.3.3
-pyarrow==25.0.0
+pyarrow==25.0.1
 duckdb==1.5.5
 scikit-learn==1.9.0
-psycopg[binary]==3.3.4
+psycopg[binary]==3.3.5
 psycopg-pool==3.3.1
 keyring>=25.7.0
 pyperclip>=1.11.0
@@ -40,7 +40,7 @@ Pillow>=12.3.0
 ocrmac==1.0.1; sys_platform == "darwin"
 # 本機高精度 ASR（agent_core/local_asr）走 whisper.cpp 系統二進位（brew install
 # whisper-cpp）— 跟 ffmpeg 同款「沒裝就優雅降級」，不進 pip。⚠️別換回 mlx-whisper：
-# 它硬依賴 numba（要求 numpy<2.2），與上面釘死的 numpy==2.5.1 解析衝突。
+# 它硬依賴 numba（要求 numpy<2.2），與上面釘死的 numpy==2.5.3 解析衝突。
 # Whisper 中文輸出常混簡體 — 轉錄後統一轉繁（純 Python、跨平台、無重依賴）。
 opencc-python-reimplemented==0.1.7
 mcp==1.28.1
