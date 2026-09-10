@@ -1,0 +1,161 @@
+{
+  "task_name": "開發費用設定與計算",
+  "video_summary": "設定開發材料與費用分攤邏輯，並執行期間開發成本彙總計算與報表產出。",
+  "erp_name": "FAST ERP",
+  "prerequisites": "已登入系統，且開發材料參數設定已完成。",
+  "menu_path": "流程費用 → 開發費用設定 / 開發費用計算",
+  "steps": [
+    {
+      "n": 1,
+      "action": "click",
+      "target_description": "主流程畫面中央的「開發費用設定」按鈕",
+      "visual_cue": "開發費用設定",
+      "why": "進入設定材料分攤類別與費用分攤方式的界面"
+    },
+    {
+      "n": 2,
+      "action": "select",
+      "target_description": "「材料設定」分頁中的「分攤類別」下拉選單",
+      "visual_cue": "分攤項目 (主料/共用材料)",
+      "example_value": "共用材料",
+      "why": "區分材料屬於主料還是共用材料，影響後續分攤邏輯"
+    },
+    {
+      "n": 3,
+      "action": "click",
+      "target_description": "上方分頁標籤「費用設定」",
+      "visual_cue": "費用設定",
+      "why": "切換至非材料類開發費用的設定界面"
+    },
+    {
+      "n": 4,
+      "action": "fill",
+      "target_description": "費用設定列表中的「費用代碼」與「費用名稱」欄位",
+      "visual_cue": "費用代碼, 費用名稱",
+      "example_value": "F, 測試費用",
+      "why": "手動建立需要分攤的開發費用項目（如人工、設備成本）"
+    },
+    {
+      "n": 5,
+      "action": "select",
+      "target_description": "費用設定列表中的「分攤方式」下拉選單",
+      "visual_cue": "分攤方式",
+      "example_value": "5-比率分攤",
+      "why": "指定該項費用如何分攤（直接歸屬、領用歸屬、完工數量、完工係數或比率分攤）"
+    },
+    {
+      "n": 6,
+      "action": "fill",
+      "target_description": "右側「比率分攤」子列表中的「佔比」欄位",
+      "visual_cue": "佔比",
+      "example_value": "90",
+      "why": "當選擇「比率分攤」時，設定各客戶分擔的百分比，總和必須為 100"
+    },
+    {
+      "n": 7,
+      "action": "click",
+      "target_description": "主流程畫面右側的「開發費用計算」按鈕",
+      "visual_cue": "開發費用計算",
+      "why": "執行開發費用的彙總計算作業"
+    },
+    {
+      "n": 8,
+      "action": "click",
+      "target_description": "上方分頁標籤「期間費用維護」",
+      "visual_cue": "期間費用維護",
+      "why": "輸入或匯入該期間實際發生的費用金額"
+    },
+    {
+      "n": 9,
+      "action": "click",
+      "target_description": "右側按鈕「分攤金額匯入」",
+      "visual_cue": "分攤金額匯入(F)",
+      "why": "從系統中匯入特定會計期間的費用資料"
+    },
+    {
+      "n": 10,
+      "action": "fill",
+      "target_description": "下方列表的「金額」欄位",
+      "visual_cue": "金額",
+      "example_value": "50000",
+      "why": "手動輸入該項費用在當前會計期間的實際總支出金額"
+    },
+    {
+      "n": 11,
+      "action": "click",
+      "target_description": "上方分頁標籤「開發費用彙總計算」",
+      "visual_cue": "開發費用彙總計算",
+      "why": "回到彙總執行界面"
+    },
+    {
+      "n": 12,
+      "action": "click",
+      "target_description": "視窗中間右側的「開發費用彙總計算」按鈕",
+      "visual_cue": "開發費用彙總計算(R)",
+      "why": "執行最終的計算程序，將期間費用依照設定好的方式分攤到各客戶/樣品單"
+    },
+    {
+      "n": 13,
+      "action": "click",
+      "target_description": "最上方的「費用生效」按鈕",
+      "visual_cue": "費用生效",
+      "why": "確認計算結果無誤後，鎖定資料以便產出報表"
+    },
+    {
+      "n": 14,
+      "action": "click",
+      "target_description": "視窗右上角的「開發費用明細表」按鈕",
+      "visual_cue": "開發費用明細表",
+      "why": "產出 PDF 格式的開發費用統計明細表，用於審核與分析"
+    }
+  ],
+  "fields_schema": {
+    "分攤類別": {
+      "type": "string",
+      "required": true,
+      "example": "主料",
+      "notes": "材料設定中的類別"
+    },
+    "費用代碼": {
+      "type": "string",
+      "required": true,
+      "example": "A"
+    },
+    "分攤方式": {
+      "type": "string",
+      "required": true,
+      "example": "1-直接歸屬"
+    },
+    "客戶佔比": {
+      "type": "number",
+      "required": false,
+      "example": "100",
+      "notes": "比率分攤時必填"
+    },
+    "金額": {
+      "type": "number",
+      "required": true,
+      "example": "10000",
+      "notes": "期間費用維護時填寫"
+    },
+    "會計期間": {
+      "type": "string",
+      "required": true,
+      "example": "202303"
+    }
+  },
+  "validation": "點擊列印後能正確產出「開發費用統計明細表」，且各項費用分攤金額正確無誤。",
+  "common_pitfalls": [
+    "比率分攤時，所有客戶的佔比總和若不等於 100%，系統將無法保存或計算。",
+    "若調料單或領料單沒有金額，後續的分攤計算將會產出零值。",
+    "忘記執行「費用生效」會導致報表無法產出資料。"
+  ],
+  "narrator_tips": [
+    "「直接歸屬」通常用於昂貴主料，根據調料單直接計入特定樣品單。",
+    "「完工係數」會參考鞋型難易度，難度越高分攤的成本比重越大。",
+    "如果資料有變動，需先「取消生效」及「取消彙總計算」後才能重新匯入計算。"
+  ],
+  "_video_name": "開發費用.mp4",
+  "_video_path": "開發部教學",
+  "_video_index": 13
+}

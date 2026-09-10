@@ -1,0 +1,86 @@
+# Secrets & credentials
+credentials.json
+token.json
+*.npz
+.env
+.env.*
+!.env.example
+
+# Runtime state (JSON)
+daemon_state.json
+daemon_state.json.bak
+daemon_state.json.lock
+daemon_tasks.json
+daemon_tasks.json.lock
+hotword_state.json
+memory.json
+mistakes.json
+email_classifications.json
+sample_tracker.json
+
+# Data & caches
+var/
+chroma_db/
+data_lake/
+data_lake_internal/
+recordings/
+quote_history/
+logs/
+erp_workflows/_video_cache/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+# bare (no slash): also ignore a .venv *symlink*, common in git worktrees —
+# the .venv/ rule above only matches a directory, not a symlink.
+.venv
+.venv-*/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+
+# Backups & temp
+*.save
+*.bak
+*.tmp
+*.swp
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Claude Code local settings (per-user)
+.claude/launch.json
+.claude/settings.local.json
+.claude/worktrees/
+.claude/*.lock
+
+# MCP server config (可能含 API token)
+mcp_servers.json
+
+# 小紅生成的圖片（可能很大、且會再生）
+generated_images/
+
+# Run history / audit trail（包含 screenshot，可能含敏感畫面）
+runs/
+
+# Workflow state + step 記錄（可能含 intermediate 敏感資料）
+/workflows/
+
+# Vault access audit log（雖然不含 value 但仍列出 secret 名稱 + 時間）
+vault_access.log
+
+# Gemini cost / usage log（含 token 數跟 caller，但不含 prompt 內容）
+var/data/cost/

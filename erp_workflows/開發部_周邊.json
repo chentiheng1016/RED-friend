@@ -1,0 +1,264 @@
+{
+  "workflow_name": "開發部_周邊完整作業流程",
+  "workflow_summary": "本流程涵蓋開發部從基礎資料維護（材料編碼、鞋型楦頭、廠商報價）、樣品需求建立與加工設定、物料採購與倉儲管理（領退料、入庫、調撥）、生產排程與完工回報，直至出貨、客戶 DN/CN 建立與開發費用計算的完整週期。",
+  "erp_name": "FAST ERP / Oracle Forms Services",
+  "menu_path": "主選單 → 開發管理 / 基礎資料 / 流程費用",
+  "steps": [
+    {
+      "n": 1,
+      "phase": "基礎資料維護",
+      "action": "setup",
+      "target_description": "開發料品編碼規則與基礎資料建立",
+      "visual_cue": "開發料品編碼規則建立 / 編新料號",
+      "why": "定義材料大類編碼方式（流水號或清單選擇）並生成正式料號，建立庫存與 BOM 單位換算。"
+    },
+    {
+      "n": 2,
+      "phase": "基礎資料維護",
+      "action": "setup",
+      "target_description": "楦頭、結構與鞋型建置",
+      "visual_cue": "楦頭主檔 / 結構基礎資料 / 鞋型建置建立",
+      "why": "設定楦頭量度基準、定義鞋型結構部位與模具類別，並建立型體與配色的父子關係。"
+    },
+    {
+      "n": 3,
+      "phase": "基礎資料維護",
+      "action": "setup",
+      "target_description": "開發採購廠商與公用代碼本地化",
+      "visual_cue": "開發採購廠商建立 / 公用代碼建立",
+      "why": "維護廠商幣別、稅種與採購小組權限，並填寫本地化名稱（如越南文）供海外生產端識別。"
+    },
+    {
+      "n": 4,
+      "phase": "報價與成本",
+      "action": "fill",
+      "target_description": "開發材料報價單建立與參考複製",
+      "visual_cue": "開發材料報價單建立 / 開發材料報價參考建立",
+      "why": "維護材料單價，並利用參考建立功能快速將單價複製到同材料不同顏色的料號上。"
+    },
+    {
+      "n": 5,
+      "phase": "樣品管理",
+      "action": "click",
+      "target_description": "開發樣品編號建立與加工物料清單設定",
+      "visual_cue": "加工物料清單分頁",
+      "why": "在樣品單中指定加工代碼、物料代碼及加工廠商，定義多站加工細節。"
+    },
+    {
+      "n": 6,
+      "phase": "樣品管理",
+      "action": "print",
+      "target_description": "樣品單列印 (SPEC)",
+      "visual_cue": "樣品單列印按鈕",
+      "why": "輸出 PDF 格式的樣品說明書供開發與生產參考。"
+    },
+    {
+      "n": 7,
+      "phase": "需求與採購",
+      "action": "execute",
+      "target_description": "調料需求彙總與產生調料單",
+      "visual_cue": "調料需求彙總",
+      "why": "彙整多張樣品單的需求，輸入調料數並產生調料單；若為非庫存料則需補齊料品編碼。"
+    },
+    {
+      "n": 8,
+      "phase": "需求與採購",
+      "action": "create",
+      "target_description": "加工採購單與手工採購單建立",
+      "visual_cue": "非庫存調料加工採購 / 手工開採購單",
+      "why": "根據調料單或樣品單建立正式採購記錄，維護加工單價並執行生效。"
+    },
+    {
+      "n": 9,
+      "phase": "需求與採購",
+      "action": "fill",
+      "target_description": "開發調料交期預排",
+      "visual_cue": "預排日期 / 廠商回覆日",
+      "why": "追蹤廠商承諾交期，確保開發進度受控。"
+    },
+    {
+      "n": 10,
+      "phase": "倉儲物流",
+      "action": "execute",
+      "target_description": "收料入庫與開發材料調撥",
+      "visual_cue": "開發進退貨建立 / 開發材料調撥建立",
+      "why": "執行原材料收料，並將貨物從海上倉（P倉）調撥至實際開發倉。"
+    },
+    {
+      "n": 11,
+      "phase": "倉儲物流",
+      "action": "execute",
+      "target_description": "開發領用料建立 (領/退/補料)",
+      "visual_cue": "複核 / 銷帳 (P)",
+      "why": "依據樣品單領取材料，執行銷帳以真正扣除庫存；損耗則需填寫開補原因。"
+    },
+    {
+      "n": 12,
+      "phase": "生產執行",
+      "action": "setup",
+      "target_description": "樣品生產排程與日曆設定",
+      "visual_cue": "樣品排程日曆設定 / 樣品生產排程",
+      "why": "設定工作日與產能，匯入樣品單並利用生產序（含小數點插入）編排生產優先順序。"
+    },
+    {
+      "n": 13,
+      "phase": "生產執行",
+      "action": "report",
+      "target_description": "樣品單完工回報",
+      "visual_cue": "完工項目 (鞋面/整雙)",
+      "why": "分階段回報進度，整雙完工生效後會自動將 BOM 寫入型體主檔。"
+    },
+    {
+      "n": 14,
+      "phase": "出貨與確認",
+      "action": "execute",
+      "target_description": "樣品單入庫出貨作業",
+      "visual_cue": "選擇樣品單(F2) / 出貨(F4)",
+      "why": "完成入庫並執行出貨，同步扣減成品庫存。"
+    },
+    {
+      "n": 15,
+      "phase": "出貨與確認",
+      "action": "report",
+      "target_description": "客戶確認回報與自動翻單",
+      "visual_cue": "內部/客戶確認",
+      "why": "記錄客戶檢驗結果，若狀態為 NG 可由系統自動觸發產生新樣品單。"
+    },
+    {
+      "n": 16,
+      "phase": "帳務與結算",
+      "action": "create",
+      "target_description": "客戶 DN/CN 建立",
+      "visual_cue": "單據類別 (DN/CN) / 選擇樣品單",
+      "why": "針對需收費的樣品或額外費用（如運費）建立扣款或折讓單。"
+    },
+    {
+      "n": 17,
+      "phase": "帳務與結算",
+      "action": "calculate",
+      "target_description": "開發費用設定、計算與明細表產出",
+      "visual_cue": "開發費用彙總計算 / 費用生效",
+      "why": "設定材料與人工費用的分攤邏輯（直接歸屬、比率、係數），計算期間成本並產出報表。"
+    }
+  ],
+  "fields_schema": {
+    "材料/物料相關": {
+      "材料大類": {
+        "type": "string",
+        "required": true,
+        "example": "EVA / 牛皮"
+      },
+      "物料代碼": {
+        "type": "string",
+        "required": true,
+        "example": "ED202206230002-B230"
+      },
+      "庫存單位": {
+        "type": "dropdown",
+        "required": true,
+        "example": "PRS / Y / KG"
+      },
+      "換算率": {
+        "type": "number",
+        "default": 1
+      },
+      "管制方式": {
+        "type": "enum",
+        "options": [
+          "不管制",
+          "依樣單領料",
+          "BY客戶",
+          "自動倒扣"
+        ]
+      }
+    },
+    "廠商與報價": {
+      "供貨商代碼": {
+        "type": "string",
+        "required": true
+      },
+      "稅種": {
+        "type": "string",
+        "required": true
+      },
+      "報價單價": {
+        "type": "number",
+        "required": true
+      },
+      "生效日期": {
+        "type": "date",
+        "required": true
+      }
+    },
+    "單據核心": {
+      "樣品單號": {
+        "type": "string",
+        "required": true
+      },
+      "季節/小組/客戶": {
+        "type": "string",
+        "required": true,
+        "notes": "DN/CN 建立時必須與原單一致"
+      },
+      "異動類別": {
+        "type": "enum",
+        "options": [
+          "領料",
+          "退料",
+          "開補",
+          "入庫"
+        ]
+      },
+      "單據類別": {
+        "type": "enum",
+        "options": [
+          "DN",
+          "CN"
+        ]
+      }
+    },
+    "生產與費用": {
+      "完工數量": {
+        "type": "number",
+        "required": true
+      },
+      "分攤方式": {
+        "type": "enum",
+        "options": [
+          "直接歸屬",
+          "完工數量",
+          "比率分攤",
+          "完工係數"
+        ]
+      },
+      "分攤佔比": {
+        "type": "number",
+        "notes": "比率分攤時總和需為 100%"
+      },
+      "會計期間": {
+        "type": "string",
+        "example": "202303"
+      }
+    }
+  },
+  "validation": [
+    "資料存檔成功後，單據狀態應顯示為「生效」或「Complete」。",
+    "執行「銷帳」後，庫存查詢之現有量應即時變動。",
+    "報價單生效後，採購單方可抓取到最新正確單價。",
+    "比率分攤總和必須等於 100 才能執行費用計算。"
+  ],
+  "common_pitfalls": [
+    "生效後之編碼、名稱及關鍵 Key 值（藍色字體）不可直接修改，須點擊「生效修改」或先「取消生效」。",
+    "領料務必在樣品單出貨前完成，且庫存不足時無法通過複核。",
+    "若樣品單未勾選「收費」，DN/CN 建立時將搜尋不到該筆資料。",
+    "圖片上傳限制 500K 以下。",
+    "加工物料若未選取「加工代碼」，下方明細可能無法正常編輯。"
+  ],
+  "narrator_tips": [
+    "利用「批次設定」與「報價參考」可大幅節省同物料多顏色的建檔時間。",
+    "排程時使用小數點序號（如 1.1）可靈活插入急單。",
+    "海上倉（P 開頭）貨物需經調撥單轉入實體倉才能領用。",
+    "本地化名稱（越南文）是海外廠生產流暢的關鍵，務必填寫。",
+    "費用計算前，需確保該期間所有領料、調料單均已生效且有單價。"
+  ]
+}

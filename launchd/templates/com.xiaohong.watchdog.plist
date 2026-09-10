@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.xiaohong.watchdog</string>
+
+    <!-- Daemon 存活 / 停滯看門狗（系統層 belt-and-suspenders，2026-06-12/13 事故）。
+         每 2 分鐘掃一次：偵測「process 還活著但任務卡死」的 telegram bot →
+         自動 SIGTERM + launchctl kickstart -k 救回；rag_sync log 停滯 → 只告警。
+         tick-style daemon — 短壽命 process，跑完即退出。
+         redeploy：./bin/redeploy-daemons watchdog -f -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>@@REPO_ROOT@@/.venv/bin/python</string>
+        <string>-m</string>
+        <string>agent_core.daemon_watchdog</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>@@REPO_ROOT@@</string>
+
+    <key>StartInterval</key>
+    <integer>120</integer>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-watchdog.log</string>
+    <key>StandardErrorPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-watchdog.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+        <!-- daemon 模式 — 抑制 startup print -->
+        <key>AGENT_DAEMON_MODE</key>
+        <string>1</string>
+        <!-- 走共用 chroma server（fleet 慣例；看門狗本身不開 chroma，
+             但 telegram_push 通知路徑保險起見對齊，勿開 embedded client） -->
+        <key>RED_CHROMA_HTTP_URL</key>
+        <string>http://127.0.0.1:8000</string>
+
+        <!-- ── 看門狗門檻 / 開關（皆走 agent_core.env_utils）──
+             改完跑 ./bin/redeploy-daemons watchdog -f 生效。 -->
+        <!-- master switch；設 0 完全停掉看門狗 -->
+        <key>RED_WATCHDOG_ENABLE</key>
+        <string>1</string>
+        <!-- telegram 任務 heartbeat 停滯多少秒算卡死（預設 1200=20 分鐘，
+             需 > RED_TG_TASK_DEADLINE_S=900 才不會誤判正常長任務） -->
+        <key>RED_WATCHDOG_TG_STALL_S</key>
+        <string>1200</string>
+        <!-- telegram bot 卡死是否自動 SIGTERM + kickstart -k（預設開）。
+             設 0 則只告警不重啟，交給大王手動處理。 -->
+        <key>RED_WATCHDOG_TG_AUTORESTART</key>
+        <string>1</string>
+        <!-- 同一個 bot 兩次自動重啟的最小間隔秒數（預設 900=15 分鐘），
+             防啟動即崩的 respawn 風暴。 -->
+        <key>RED_WATCHDOG_RESTART_COOLDOWN_S</key>
+        <string>900</string>
+        <!-- rag_sync log mtime 停滯多少秒算卡死（預設 1800=30 分鐘；
+             進度 log 稀疏 + 圖片 OCR ~29s/張，留足餘裕）。rag 只告警不自動重啟。 -->
+        <key>RED_WATCHDOG_RAG_STALL_S</key>
+        <string>1800</string>
+        <key>RED_EMBED_DIM</key>
+        <string>768</string>
+    </dict>
+</dict>
+</plist>

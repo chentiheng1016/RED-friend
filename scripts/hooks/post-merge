@@ -1,0 +1,19 @@
+#!/bin/bash
+# post-merge — restart agent daemons when a merge brought new agent_core /
+# skills code, so they don't keep running stale Python in memory.
+#
+# Installed by scripts/install-hooks.sh. The actual logic lives in
+# scripts/post_merge_redeploy.py so it can be unit-tested.
+
+set -e
+
+REPO="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+PY="$REPO/.venv/bin/python"
+SCRIPT="$REPO/scripts/post_merge_redeploy.py"
+
+# Fail open if the venv or script is missing — the merge already happened
+# and a hook crash here would just confuse the user. Better to skip silently.
+[ -x "$PY" ] || exit 0
+[ -f "$SCRIPT" ] || exit 0
+
+exec "$PY" "$SCRIPT" "$@"

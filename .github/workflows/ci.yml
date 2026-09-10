@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  checks:
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install Node dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run Node checks
+        run: |
+          npm test
+          npm run smoke:node:launch
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: |
+            requirements-core.txt
+            requirements-rag.txt
+            requirements-web.txt
+            requirements-docs.txt
+            requirements-dev.txt
+            .pre-commit-config.yaml
+
+      - name: Create virtualenv
+        run: python -m venv .venv
+
+      - name: Install dependencies
+        run: |
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/pip install \
+            -r requirements-core.txt \
+            -r requirements-rag.txt \
+            -r requirements-web.txt \
+            -r requirements-docs.txt \
+            -r requirements-dev.txt
+
+      - name: Run pre-commit
+        run: .venv/bin/pre-commit run --all-files
+
+      - name: Install Postgres for operational DB smoke
+        run: brew install postgresql@16
+
+      - name: Run operational DB schema smoke
+        run: .venv/bin/python scripts/ci_operational_db_smoke.py --require-postgres --dry-run-limit 100
+
+      # Tests run before audits so the test signal is always visible — an
+      # upstream dependency CVE (which `make security-audit` catches) must not
+      # hide whether the suite passes. `!cancelled()` keeps the audit running
+      # even when tests fail, so a single run reports both results.
+      - name: Run tests
+        env:
+          AGENT_DAEMON_MODE: "1"
+        # `-t .` → tests 以 package 匯入、跑 tests/__init__.py 做 runtime-dir 隔離
+        # （避免污染 var/runs/）。勿拿掉。見 tests/__init__.py 與 Makefile test 目標。
+        run: .venv/bin/python -m unittest discover -s tests -t . -q
+
+      # `make lint` 跑完整 ruff 設定（ruff.toml 的 select），與 pre-commit 的窄規則
+      # （E9,F63,F7,F82）互補 —— 後者只擋語法級致命錯，攔不到 F401 未用匯入這類。
+      # 2026-08-12 才發現這個缺口：#375 把 ruff 下限提到 >=0.16.2，而 0.16 換了預設
+      # 規則集，本機 `make lint` 當場從全綠變 4,014 個錯，但 CI 全程綠燈 —— 因為
+      # workflow 從來不跑 make lint。設定已在 #389 釘死，這一步是補上守門的人。
+      #
+      # 跟 audit 同樣放在 tests 之後 + `!cancelled()`：lint 紅（例如又一次 ruff
+      # 換預設）不該蓋掉「測試到底過不過」這個更重要的訊號。
+      - name: Run lint
+        if: ${{ !cancelled() }}
+        run: make lint
+
+      - name: Run security audits
+        if: ${{ !cancelled() }}
+        run: make security-audit
+
+      # Same treatment as the Python audits above: npm audit runs LAST with
+      # !cancelled() so an upstream advisory (or a transient registry audit
+      # endpoint outage — both bit us on 2026-07-24) can only redden this one
+      # step instead of skipping the whole Python pipeline and hiding the test
+      # signal behind misleading ".venv not found" noise.
+      # `make node-audit` = npm audit + scoped advisory exemptions (see the
+      # NODE_AUDIT_IGNORE rationale in the Makefile).
+      - name: Run npm audit
+        if: ${{ !cancelled() }}
+        run: make node-audit

@@ -1,0 +1,15 @@
+# Default owner for repository changes. This is advisory unless GitHub branch
+# protection / rulesets are available for the repository plan.
+* @chentiheng1016
+
+# Higher-risk operational surfaces.
+/.github/ @chentiheng1016
+/bin/ @chentiheng1016
+/launchd/ @chentiheng1016
+/scripts/ @chentiheng1016
+/agent_core/google_auth.py @chentiheng1016
+/agent_core/telegram.py @chentiheng1016
+/agent_core/tool_rpc_server.py @chentiheng1016
+/requirements*.txt @chentiheng1016
+/package.json @chentiheng1016
+/package-lock.json @chentiheng1016

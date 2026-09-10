@@ -1,0 +1,207 @@
+#!/bin/bash
+# RED 開工前檢查 — 一個指令回答「現在能不能動」。
+#
+# 為什麼需要這支（2026-08-15）：這個 repo 常態同時掛 8 個 Claude worktree，
+# 而「能不能動」要看五件事，以前每次開工都得手動打五組查詢。實績：一個晚上
+# 撞到三次別的 session 正在部署（都是靠 ps 才發現），還有一次沒先 fetch，
+# 跟另一個 session 把同一個修正做了兩遍（對方的 PR 整個白做）。
+#
+# 用法：
+#   bin/red-preflight              # 完整檢查（會 git fetch origin）
+#   bin/red-preflight --no-fetch   # 不碰網路（離線 / 只想看本機狀態）
+#
+# 退出碼：
+#   0  可以動
+#   3  有人正在部署 —— 與 agent_core/deploy_lock.BUSY_EXIT_CODE 一致，
+#      方便腳本 `bin/red-preflight || exit` 直接擋住並發部署
+#
+# 全程唯讀：不寫檔、不改 HEAD、不碰 daemon。唯一的副作用是 git fetch 更新
+# remote-tracking ref（可用 --no-fetch 關掉）。
+set -uo pipefail
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+HERE="$( dirname "${SCRIPT_DIR}" )"
+
+DO_FETCH=1
+for arg in "$@"; do
+    case "${arg}" in
+        --no-fetch) DO_FETCH=0 ;;
+        -h|--help) sed -n '2,22p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        *) echo "未知參數：${arg}（用 --help 看用法）" >&2; exit 2 ;;
+    esac
+done
+
+# 主 checkout 的位置由 git 自己說，不要 hardcode：worktree 的 --git-common-dir
+# 指回主 repo 的 .git，主 checkout 則指到自己的 .git。這樣同一支腳本從任何
+# worktree 跑都對得到「真正在跑 daemon 的那份 checkout」。
+GIT_COMMON="$( cd "${HERE}" && git rev-parse --git-common-dir 2>/dev/null )"
+if [ -n "${GIT_COMMON}" ]; then
+    case "${GIT_COMMON}" in
+        /*) MAIN_CHECKOUT="$( dirname "${GIT_COMMON}" )" ;;
+        *)  MAIN_CHECKOUT="$( cd "${HERE}/${GIT_COMMON}/.." && pwd )" ;;
+    esac
+else
+    MAIN_CHECKOUT="${HERE}"
+fi
+
+PYBIN="${MAIN_CHECKOUT}/.venv/bin/python"
+[ -x "${PYBIN}" ] || PYBIN="$( command -v python3 2>/dev/null || true )"
+
+EXIT_CODE=0
+
+echo "════════ RED 開工前檢查 ════════"
+
+# ── 1. 我在哪 ─────────────────────────────────────────────────────
+# worktree 裡跑部署會把 daemon 指向 worktree（REPO 由腳本位置推導），症狀是
+# 靜默讀空的 var/ —— 所以第一件事就是把「這裡」和「live 那裡」分清楚。
+HERE_BRANCH="$( cd "${HERE}" && git branch --show-current 2>/dev/null )"
+echo
+echo "1️⃣  位置"
+if [ "${HERE}" = "${MAIN_CHECKOUT}" ]; then
+    echo "   ✅ 主 checkout（daemon 就是跑這份）：${HERE}"
+else
+    echo "   📂 目前在 worktree：${HERE}"
+    echo "      分支：${HERE_BRANCH:-（detached）}"
+    echo "   ⚠️  部署一律回主 checkout 跑：${MAIN_CHECKOUT}"
+    echo "      （在 worktree 裡跑 redeploy 會把 daemon 指到 worktree、讀到空的 var/）"
+fi
+
+# ── 2. 有人在部署嗎 ───────────────────────────────────────────────
+# 用 deploy lock 的**非阻塞 shared flock** 探測，不是 ps | grep：ps 只看得到
+# 「現在這一秒有沒有那個字串」，鎖才是 redeploy-daemons 與
+# scripts/post_merge_redeploy.py 真正互斥的東西。探測完立刻放掉，不影響持有者。
+echo
+echo "2️⃣  部署互斥鎖"
+LOCK_PATH=""
+if [ -n "${PYBIN}" ]; then
+    LOCK_PATH="$( cd "${MAIN_CHECKOUT}" && PYTHONPATH="${MAIN_CHECKOUT}" "${PYBIN}" -c "
+from agent_core.deploy_lock import deploy_lock_path
+print(deploy_lock_path())
+" 2>/dev/null )"
+fi
+if [ -z "${LOCK_PATH}" ]; then
+    echo "   ⚠️  無法解析 lock 路徑（venv 或 agent_core 不可用），退回 ps 判斷"
+elif [ ! -f "${LOCK_PATH}" ]; then
+    echo "   ✅ 沒有部署在進行（lock 檔尚未建立）"
+else
+    LOCK_STATE="$( "${PYBIN}" -c "
+import fcntl, os, sys
+path = sys.argv[1]
+try:
+    fd = os.open(path, os.O_RDONLY)
+except OSError:
+    print('unknown'); sys.exit()
+try:
+    fcntl.flock(fd, fcntl.LOCK_SH | fcntl.LOCK_NB)
+except OSError:
+    # 拿不到共享鎖 = 有人持著獨佔鎖 = 正在部署
+    try:
+        holder = open(path).read().strip() or '?'
+    except OSError:
+        holder = '?'
+    print('busy ' + holder)
+else:
+    fcntl.flock(fd, fcntl.LOCK_UN)
+    print('free')
+finally:
+    os.close(fd)
+" "${LOCK_PATH}" 2>/dev/null )"
+    case "${LOCK_STATE}" in
+        busy*)
+            HOLDER="${LOCK_STATE#busy }"
+            echo "   🚨 有人正在部署（deploy lock 被持有，holder pid=${HOLDER}）"
+            echo "      現在動 git / redeploy 會跟它撞在一起 —— 等它跑完再說"
+            EXIT_CODE=3
+            ;;
+        free) echo "   ✅ 沒有部署在進行（lock 可取得）" ;;
+        *)    echo "   ⚠️  lock 狀態判讀失敗：${LOCK_STATE:-（無輸出）}" ;;
+    esac
+fi
+# ps 只當佐證：鎖是真相，但看得到指令名對診斷有幫助
+DEPLOY_PS="$( ps -eo pid,command 2>/dev/null \
+    | grep -E "redeploy-daemons|post_merge_redeploy" | grep -v grep | head -3 )"
+if [ -n "${DEPLOY_PS}" ]; then
+    echo "   相關 process："
+    echo "${DEPLOY_PS}" | sed 's/^/      /'
+fi
+
+# ── 3. origin/main 動了沒 ─────────────────────────────────────────
+echo
+echo "3️⃣  版本落差"
+if [ "${DO_FETCH}" = "1" ]; then
+    ( cd "${HERE}" && git fetch origin --quiet 2>/dev/null ) \
+        || echo "   ⚠️  git fetch 失敗（離線？），下面的數字可能是舊的"
+else
+    echo "   （--no-fetch：沒有更新 remote ref，數字可能是舊的）"
+fi
+_ahead_behind() {  # $1=checkout $2=標籤
+    local dir="$1" label="$2" head behind ahead
+    head="$( cd "${dir}" && git log --oneline -1 2>/dev/null )"
+    behind="$( cd "${dir}" && git rev-list --count HEAD..origin/main 2>/dev/null )"
+    ahead="$( cd "${dir}" && git rev-list --count origin/main..HEAD 2>/dev/null )"
+    echo "   ${label}"
+    echo "      HEAD: ${head:-？}"
+    echo "      vs origin/main：落後 ${behind:-?} 筆 / 領先 ${ahead:-?} 筆"
+}
+if [ "${HERE}" != "${MAIN_CHECKOUT}" ]; then
+    _ahead_behind "${HERE}" "📂 這個 worktree（${HERE_BRANCH:-detached}）"
+    # 這個 repo 常態掛 8 個 worktree：開工前沒看 origin/main 就可能跟別人做同一件事
+    HERE_BEHIND="$( cd "${HERE}" && git rev-list --count HEAD..origin/main 2>/dev/null )"
+    if [ "${HERE_BEHIND:-0}" != "0" ]; then
+        echo "      ⚠️  origin/main 有 ${HERE_BEHIND} 筆新 commit —— 開工前先看一眼："
+        echo "         git log --oneline origin/main -10"
+        echo "         （有人可能已經做掉你要做的事；實績：同一個修正被兩個 session 各做一遍）"
+    fi
+fi
+LIVE_BRANCH="$( cd "${MAIN_CHECKOUT}" && git branch --show-current 2>/dev/null )"
+_ahead_behind "${MAIN_CHECKOUT}" "🖥️  live 主 checkout（${LIVE_BRANCH:-detached}）"
+LIVE_BEHIND="$( cd "${MAIN_CHECKOUT}" && git rev-list --count HEAD..origin/main 2>/dev/null )"
+if [ "${LIVE_BEHIND:-0}" != "0" ]; then
+    echo "      未部署的 commit："
+    ( cd "${MAIN_CHECKOUT}" && git log --oneline HEAD..origin/main | head -5 | sed 's/^/         /' )
+fi
+DIRTY="$( cd "${MAIN_CHECKOUT}" && git status --short 2>/dev/null | wc -l | tr -d ' ' )"
+[ "${DIRTY:-0}" != "0" ] && echo "      ⚠️  主 checkout 有 ${DIRTY} 個未提交變更（部署前要先處理）"
+
+# ── 4. 長跑任務 ───────────────────────────────────────────────────
+# 重啟艦隊會打斷這些；rag_sync 一輪 7–15 小時，打斷要重跑。
+echo
+echo "4️⃣  長跑任務"
+# 必須是**真的在跑那個工作的 python process**：只比對關鍵字會把 `tail -f
+# daemon-erp_mirror_refresh.log` 這種看 log 的視窗也算成長跑任務（第一版就中了，
+# 而且誤報正是這支腳本要消滅的東西）。
+LONG_PS="$( ps -eo pid,etime,command 2>/dev/null \
+    | grep -E "[Pp]ython.*(rag_sync|rag_runner|erp_mirror|drive_sync|warehouse_rebuild|backfill)" \
+    | grep -vE "grep|[[:space:]](tail|less|more|watch|vim|nano)[[:space:]]|unittest|pytest" | head -5 )"
+if [ -n "${LONG_PS}" ]; then
+    echo "   ⚠️  有長跑任務在跑，重啟會打斷："
+    echo "${LONG_PS}" | sed 's/^/      /'
+else
+    echo "   ✅ 沒有長跑任務"
+fi
+
+# ── 5. 時間窗 ─────────────────────────────────────────────────────
+# 03:00 是 rag_sync_daily 的夜跑；redeploy 的 RunAtLoad 也可能立刻觸發一輪。
+echo
+echo "5️⃣  時間窗"
+echo "   現在：$( date '+%Y-%m-%d %H:%M %A' )"
+if [ -n "${PYBIN}" ]; then
+    "${PYBIN}" -c "
+from datetime import datetime, timedelta
+now = datetime.now()
+nxt = now.replace(hour=3, minute=0, second=0, microsecond=0)
+if nxt <= now:
+    nxt += timedelta(days=1)
+mins = (nxt - now).total_seconds() / 60
+print(f'   離 03:00 夜跑還有 {mins/60:.1f} 小時' +
+      ('（⚠️ 快到了，重啟可能撞上夜跑起跑）' if mins < 45 else ''))
+" 2>/dev/null
+fi
+
+echo
+if [ "${EXIT_CODE}" = "0" ]; then
+    echo "════════ ✅ 可以動 ════════"
+else
+    echo "════════ 🚨 先等部署跑完 ════════"
+fi
+exit "${EXIT_CODE}"

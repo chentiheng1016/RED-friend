@@ -1,0 +1,162 @@
+{
+  "task_name": "開發部基礎資料維護 (楦頭、結構、鞋型)",
+  "video_summary": "介紹楦頭主檔、結構基礎資料及鞋型鞋款的建立與生效流程。",
+  "erp_name": "FAST ERP",
+  "prerequisites": "已登入系統，位在首頁「基礎資料」分頁。",
+  "menu_path": "主選單 → 基礎資料 → 楦頭主檔建立 / 結構基礎資料建立 / 鞋型建置建立",
+  "steps": [
+    {
+      "n": 1,
+      "action": "click",
+      "target_description": "功能首頁的「楦頭主檔建立」按鈕",
+      "visual_cue": "楦頭主檔建立",
+      "why": "進入楦頭資料維護界面"
+    },
+    {
+      "n": 2,
+      "action": "click",
+      "target_description": "「尺寸量度項目維護」分頁標籤",
+      "visual_cue": "尺寸量度項目維護",
+      "why": "設定不同尺碼對應的量度基準項目"
+    },
+    {
+      "n": 3,
+      "action": "fill",
+      "target_description": "上方工具列的「插入紀錄」按鈕並選擇尺碼體制與尺寸",
+      "visual_cue": "綠色加號圖示、尺碼體制、尺寸",
+      "example_value": "CM, UK 9",
+      "why": "建立特定尺碼的量度模板"
+    },
+    {
+      "n": 4,
+      "action": "select",
+      "target_description": "下方「標籤項目」欄位點選三個點開啟開窗",
+      "visual_cue": "標籤項目、...",
+      "example_value": "楦頭寬度",
+      "why": "指定需要備註量測的項目"
+    },
+    {
+      "n": 5,
+      "action": "click",
+      "target_description": "「楦頭資料建立」分頁標籤並點擊「插入紀錄」",
+      "visual_cue": "楦頭資料建立、綠色加號",
+      "why": "開始建立正式的楦頭檔案"
+    },
+    {
+      "n": 6,
+      "action": "fill",
+      "target_description": "「楦頭號」及「楦頭類型」等必填欄位",
+      "visual_cue": "紅色星號標記欄位",
+      "example_value": "EXC111",
+      "why": "輸入楦頭的基本識別資訊"
+    },
+    {
+      "n": 7,
+      "action": "click",
+      "target_description": "功能列的「生效楦頭」按鈕",
+      "visual_cue": "印章/打勾圖示",
+      "why": "確認資料無誤並正式生效供後續取用"
+    },
+    {
+      "n": 8,
+      "action": "click",
+      "target_description": "功能首頁的「結構基礎資料建立」按鈕",
+      "visual_cue": "結構基礎資料建立",
+      "why": "定義鞋型結構所包含的模具與部位模板"
+    },
+    {
+      "n": 9,
+      "action": "select",
+      "target_description": "「鞋型結構」類別並於下方勾選「模具類別」與「開發部位」",
+      "visual_cue": "運動鞋、斬刀、楦頭、鞋面",
+      "why": "設定該類鞋款在樣品單時會自動帶出的組成項目"
+    },
+    {
+      "n": 10,
+      "action": "click",
+      "target_description": "功能首頁的「鞋型建置建立」按鈕",
+      "visual_cue": "鞋型建置建立",
+      "why": "建立鞋子的主型體與具體配色鞋款"
+    },
+    {
+      "n": 11,
+      "action": "click",
+      "target_description": "下方區域的「新增鞋型」按鈕",
+      "visual_cue": "新增鞋型",
+      "why": "建立新的鞋體（型體）編號"
+    },
+    {
+      "n": 12,
+      "action": "fill",
+      "target_description": "輸入「鞋型代碼」並選擇「鞋型結構」",
+      "visual_cue": "紅色欄位",
+      "example_value": "E85328NVR2",
+      "why": "定義型體基礎資訊，會影響樣品單帶出的結構項目"
+    },
+    {
+      "n": 13,
+      "action": "click",
+      "target_description": "下方區域的「新建鞋款」按鈕",
+      "visual_cue": "新建鞋款",
+      "why": "在同一個型體下建立不同配色的鞋款代號"
+    },
+    {
+      "n": 14,
+      "action": "fill",
+      "target_description": "輸入「鞋款代碼」與「配色名稱」",
+      "visual_cue": "藍色欄位 (Key 值)",
+      "example_value": "E85328NVR2-A003, BLACK",
+      "why": "完成具體配色的鞋款設定"
+    },
+    {
+      "n": 15,
+      "action": "click",
+      "target_description": "「生效鞋款」按鈕",
+      "visual_cue": "生效鞋款",
+      "why": "使該配色鞋款可在系統中被搜尋與交易使用"
+    }
+  ],
+  "fields_schema": {
+    "楦頭號": {
+      "type": "string",
+      "required": true,
+      "example": "EXC111"
+    },
+    "尺碼體制": {
+      "type": "string",
+      "required": true,
+      "example": "CM"
+    },
+    "尺寸": {
+      "type": "string",
+      "required": true,
+      "example": "UK 9"
+    },
+    "鞋型代碼": {
+      "type": "string",
+      "required": true,
+      "example": "E85328NVR2",
+      "notes": "主型體編號"
+    },
+    "鞋款代碼": {
+      "type": "string",
+      "required": true,
+      "example": "E85328NVR2-A001",
+      "notes": "具體配色的編號"
+    }
+  },
+  "validation": "彈出「生效完成」或「儲存成功」的訊息對話框，且資料狀態變更為「生效」。",
+  "common_pitfalls": [
+    "在「楦頭主檔建立」中，若未先在尺寸量度分頁設定模板，資料建立分頁就無法自動帶出量度項目。",
+    "藍色字體的欄位為 Key 值，生效後不可直接修改，必須先取消生效。",
+    "鞋型（型體）必須先生效，下方的鞋款（配色）才能進行後續操作。"
+  ],
+  "narrator_tips": [
+    "楦頭主檔中的量度項目會依據選定的尺碼體制自動帶出對應的備註欄位。",
+    "結構基礎資料建立後，在開發樣品單時只要選定鞋型結構，系統會自動帶出所有預設好的部位與模具類別，節省輸入時間。",
+    "鞋型與鞋款是父子關係，一個鞋型可以擁有多個不同配色的鞋款。"
+  ],
+  "_video_name": "楦頭&結構&鞋型建立.mp4",
+  "_video_path": "開發部教學",
+  "_video_index": 8
+}

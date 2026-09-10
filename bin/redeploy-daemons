@@ -1,0 +1,672 @@
+#!/bin/bash
+# redeploy-daemons — 一鍵把 launchd/templates/*.plist 部署 + 重啟對應 daemon
+#
+# 用途：每次改完 daemon code（agent_daemon.py / agent_core/daemon_*.py）或
+#       改完 plist template，跑這個腳本讓變更立刻生效。
+#
+# 不跑這個會發生什麼：
+#   daemon 仍跑舊 code（import 是啟動時做），要等 watchdog 在某個隨機時間
+#   把它踢一次才會 import 新 code。中間可能小時/天，行為不一致。
+#
+# 使用方式：
+#   ./bin/redeploy-daemons              # 部署 + 重啟所有 plist 有變的
+#   ./bin/redeploy-daemons telegram     # 只重啟 telegram
+#   ./bin/redeploy-daemons telegram web_server tool_rpc
+#                                       # 多個名字一起（打錯任一個就整輪拒絕）
+#   ./bin/redeploy-daemons --check      # 只檢查 plist 差異不重啟
+#   ./bin/redeploy-daemons --dry-run    # 模擬，print 不執行
+#   ./bin/redeploy-daemons --force      # plist 沒變也強制 unload+load
+#                                         （改 daemon python code 時用 — daemon
+#                                          內部 import 是啟動時做的，要重啟才生效）
+#   ./bin/redeploy-daemons --rollback-last
+#                                      # 回復每個 daemon 最近一次 plist 備份並 reload
+#
+#   常駐 daemon 且 plist 沒變時，重啟走「就地」路徑（launchctl kickstart -k），
+#   label 全程不離開 launchd domain、沒有可被誤判的空窗。
+#
+#   每輪收尾會等 launchd 沉澱幾秒，再確認每個重部署過的 label 真的還在
+#   `launchctl list`（不在就 bootstrap 救回，救不回 exit 1 並指名 label）：
+#     RED_REDEPLOY_VERIFY_SETTLE_S=6   沉澱秒數（要 > launchd 的 5 秒 SIGTERM 寬限）
+#     RED_REDEPLOY_VERIFY_RETRIES=2    每個 label 最多重試幾次 bootstrap
+#     RED_KICKSTART_TIMEOUT_S=20       就地重啟的 kickstart 阻塞上限（throttle 防卡）
+#
+#   排程型 job（plist 有 StartCalendarInterval / StartInterval）自動特別對待：
+#     跑到一半 → 不殺（deferred，跑完請單獨補）；idle 且 plist 沒變 → 不重載
+#     （每輪 spawn 都是新 process，下輪自然吃新碼）。詳見主迴圈 2.5 守門註解。
+#
+#   成功重啟後會自動跑一次 ./bin/red-smoke；若只想重啟不 smoke：
+#     RED_SKIP_POST_DEPLOY_SMOKE=1 ./bin/redeploy-daemons --force
+#   production 可啟用嚴格 smoke（失敗則 redeploy exit 1）：
+#     ./bin/redeploy-daemons --force --strict-smoke
+#     RED_DEPLOY_ENV=production ./bin/redeploy-daemons --force
+#
+# 安全：
+#   - 重啟 daemon 會中斷當前 session（如 telegram chat），但 launchd 立刻
+#     respawn，影響時間 < 5 秒
+#   - 失敗時保留舊 plist 不破壞現役狀態
+
+set -e
+
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
+TEMPLATE_DIR="$REPO/launchd/templates"
+# Both overridable so the deploy-lock critical section can be tested without
+# rewriting the real ~/Library/LaunchAgents or poking the live launchd fleet.
+LAUNCHAGENTS="${RED_LAUNCHAGENTS_DIR:-$HOME/Library/LaunchAgents}"
+LAUNCHCTL_BIN="${RED_LAUNCHCTL_BIN:-launchctl}"
+
+# 顏色
+G='\033[0;32m'  # green
+Y='\033[0;33m'  # yellow
+R='\033[0;31m'  # red
+N='\033[0m'     # reset
+
+DRY_RUN=0
+CHECK_ONLY=0
+FORCE=0
+STRICT_SMOKE=0
+ROLLBACK_LAST=0
+# 指定要處理的 daemon（可給多個）。空陣列＝全部。
+# 2026-08-26：這裡本來是純量 ONLY_DAEMON="$arg"，多給幾個名字時後面的會覆蓋
+# 前面的，只剩最後一個生效 —— 而且不吭聲。實際踩到：一條 13 個名字的
+# redeploy 只重啟了最後那個 tool_rpc，web_server 等 12 個原地不動繼續跑舊碼，
+# 操作者卻以為整批都部署了（唯一線索是標題那行「Redeploy 1 daemon plist(s)」）。
+ONLY_DAEMONS=()
+
+# 這個 short name 有沒有被指定？沒指定任何名字＝全部都要。
+# bash 3.2（macOS 內建）沒有關聯陣列，只能線性比對。
+_wanted() {
+    if [ ${#ONLY_DAEMONS[@]} -eq 0 ]; then
+        return 0
+    fi
+    local n
+    for n in "${ONLY_DAEMONS[@]}"; do
+        if [ "$n" = "$1" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Is this Label present in `launchctl list`? Anchored on both sides so
+# com.xiaohong.telegram never matches com.xiaohong.telegram_blue.
+_label_loaded() {
+    "$LAUNCHCTL_BIN" list 2>/dev/null | grep -qE "[[:space:]]$1\$"
+}
+
+# PID of a loaded Label, or empty when the service is idle / not loaded.
+_label_pid() {
+    "$LAUNCHCTL_BIN" list 2>/dev/null | awk -v L="$1" '$3 == L && $1 ~ /^[0-9]+$/ { print $1 }'
+}
+
+# plist 是「排程型批次任務」嗎（有 StartCalendarInterval 或 StartInterval）？
+# 這類 job 每輪 spawn 都是新 process：新碼在下一輪自然生效，「重啟讓它吃新碼」
+# 對它們是假需求。反過來，這類 job 有 PID 就代表一輪任務正在跑 —— 殺了就是丟
+# 掉跑到一半的工作（見主迴圈守門處的 2026-08-29 事故註記）。
+_plist_is_scheduled() {
+    /usr/bin/plutil -extract StartCalendarInterval xml1 -o /dev/null "$1" 2>/dev/null && return 0
+    /usr/bin/plutil -extract StartInterval xml1 -o /dev/null "$1" 2>/dev/null && return 0
+    return 1
+}
+
+RELOAD_METHOD=""
+
+# 就地重啟一個「正在跑」的 daemon —— 全程不把 Label 移出 launchd domain。
+#
+# 為什麼要有這條路（2026-08-18 紅 bot 事故的殘留風險）：改完 Python 要讓常駐
+# daemon 吃到新碼，plist 其實一個字都沒變，卻走 unload → sleep 1 → load，中間
+# 有約 1.03 秒 label 完全不在 `launchctl list` 裡（實測 unload 落在 T0+0.1~0.5s、
+# load 落在 T0+1.1~1.6s）。那 1 秒就是誤判的溫床：health_check 在那一秒取樣就
+# 認定「daemon 沒被載入」，8/18 它照著誤判動手，把剛起來的 bot 殺了。#430 讓
+# 觀察者不再有殺傷力，這裡把「空窗」本身消滅掉。
+#
+# 手法就一句 `launchctl kickstart -k`，graceful 是它自己給的：
+#   * ⚠️ man page 寫 `-k` 是「Kill the running instance」，聽起來像 SIGKILL，
+#     **實際是先送 SIGTERM、給 5 秒才 SIGKILL**（拋棄式 probe job 實測：TERM
+#     trap 有跑、乾淨 exit 0；launchd log 也印 "scheduling cleanup in 5 sec
+#     after sending Terminated: 15"）。所以 telegram bot 照樣存得到 offset、
+#     關得掉 session，這 5 秒跟舊的 unload 路徑給的完全一樣。
+#     → 別在前面自己補一次 `launchctl kill TERM` + 寬限：#434 這樣寫過，實測
+#       那個 SIGTERM 根本沒遞送（真正生效的是 kickstart 那次），純粹每個 daemon
+#       白等 3 秒；而且先斬後奏還有壞處 —— kickstart 萬一失敗，daemon 已經被我們
+#       殺掉了。現在 kickstart 失敗就直接退回 unload/load，daemon 動都沒動過。
+#   * kickstart 不能省：這些 plist 帶 KeepAlive={SuccessfulExit:false}，乾淨退出
+#     launchd 不會自己拉起來。
+#   * 實測（同一個 probe job）：乾淨退出後 label 會留在 list 裡變成 `pid=-`，
+#     **不會**被 launchd 移出 domain —— 這正是「就地」成立的前提。
+# 回傳 0 只在「label 還在、而且 PID 真的換了」時成立；其餘一律讓呼叫端退回老路。
+_restart_in_place() {
+    local label="$1"
+    local uid old new
+    uid=$(id -u)
+    old=$(_label_pid "$label")
+    [ -n "$old" ] || return 1   # 沒在跑 → 沒有「就地」可言，交回 unload/load
+
+    # kickstart 要「殺掉→重生」都完成才返回。重生被 launchd 擋下時（實測：
+    # ThrottleInterval 內重生 → log 連刷 "cannot spawn: service is throttled"）
+    # CLI 會就地阻塞 —— 2026-08-29 01:29 對 rag_sync_daily 一卡 24 分鐘，整條
+    # redeploy 停在原地直到人工 Ctrl-C。所以丟背景、給上限；逾時殺掉 CLI 並
+    # 回 1 讓呼叫端退回 unload/load（load 是非同步的，不會跟著卡）。
+    local kpid waited timeout_s
+    timeout_s="${RED_KICKSTART_TIMEOUT_S:-20}"
+    "$LAUNCHCTL_BIN" kickstart -k "gui/$uid/$label" >/dev/null 2>&1 &
+    kpid=$!
+    waited=0
+    while kill -0 "$kpid" 2>/dev/null; do
+        if [ "$waited" -ge "$timeout_s" ]; then
+            kill "$kpid" 2>/dev/null || true
+            wait "$kpid" 2>/dev/null || true
+            echo "        ⚠️ kickstart 卡超過 ${timeout_s}s（多半是 launchd throttle），退回 unload/load" >&2
+            return 1
+        fi
+        sleep 1
+        waited=$((waited+1))
+    done
+    wait "$kpid" || return 1
+    sleep 1
+    new=$(_label_pid "$label")
+    [ -n "$new" ] && [ "$new" != "$old" ]
+}
+
+# Reload a single daemon by Label. Works around two well-known launchctl quirks:
+#   1. `launchctl load` prints "Load failed" on stderr but returns exit 0,
+#      so the legacy `if launchctl load ...; then` pattern false-positives.
+#   2. `launchctl unload` writes the Label into launchd's disabled set,
+#      after which subsequent loads return "Input/output error" until an
+#      explicit `launchctl enable` undoes it.
+# Returns 0 only when the service is actually present in `launchctl list`
+# afterwards, falling back to the modern `bootstrap` API when the legacy
+# `load` silently fails.
+_reload_daemon() {
+    local target="$1"
+    local label="$2"
+    local plist_unchanged="${3:-0}"
+    local uid
+    uid=$(id -u)
+
+    # plist 一個字都沒變 = 只是要讓常駐 daemon 重新 import 新碼，根本不需要動
+    # launchd domain。只有 plist 真的改了（launchd 得重讀）或 daemon 沒在跑時，
+    # 才走下面會產生空窗的 unload/load。
+    if [ "$plist_unchanged" = "1" ] && _restart_in_place "$label"; then
+        RELOAD_METHOD="in-place"
+        return 0
+    fi
+    RELOAD_METHOD="unload+load"
+
+    "$LAUNCHCTL_BIN" unload "$target" 2>/dev/null || true
+    sleep 1
+    # Undo any disabled-set entry left by unload/bootout; idempotent.
+    "$LAUNCHCTL_BIN" enable "gui/$uid/$label" 2>/dev/null || true
+
+    "$LAUNCHCTL_BIN" load "$target" 2>&1
+    sleep 1
+    if _label_loaded "$label"; then
+        return 0
+    fi
+
+    # Fallback to modern API — exit code IS reliable on bootstrap.
+    "$LAUNCHCTL_BIN" bootstrap "gui/$uid" "$target" 2>&1 || true
+    sleep 1
+    if _label_loaded "$label"; then
+        return 0
+    fi
+    return 1
+}
+
+# ── 收尾驗證：重部署過的 label 真的還留在 launchd ───────────────────
+#
+# 2026-08-18 事故（紅 bot 靜默掛掉近 3 分鐘，只因 post-merge hook 剛好跑了
+# red-smoke 才被抓到）：本腳本 load 完 1 秒驗到 com.xiaohong.telegram 在
+# `launchctl list` 裡 → 印「↻ reloaded」→ exit 0。但 1.6 秒後 health_check
+# 的 auto-repair（它在我們 unload 的那 1 秒空窗取樣，誤判「daemon 沒被
+# launchd 載入」）對同一個 label 送了 launchctl unload，把剛起來的新程序
+# SIGTERM 掉。關鍵在時間差：被 bootout 的 job 不會立刻從 `launchctl list`
+# 消失，而是停在 SIGTERMed 狀態，直到 launchd 那 5 秒寬限期到、SIGKILL 之後
+# 才 "removing service"。所以「load 完馬上驗一次」必然驗到一個已經被判死刑
+# 的 job 是健康的。
+#
+# 修法：整批部署完，等一個「比 launchd 5 秒寬限期長」的沉澱時間再驗一次；
+# 沒在 list 裡就 bootstrap 救回（有次數上限），救不回就指名道姓 exit 1。
+VERIFY_SETTLE_S="${RED_REDEPLOY_VERIFY_SETTLE_S:-6}"
+VERIFY_RETRIES="${RED_REDEPLOY_VERIFY_RETRIES:-2}"
+VERIFY_RETRY_DELAY_S="${RED_REDEPLOY_VERIFY_RETRY_DELAY_S:-2}"
+
+# Labels this run reloaded successfully; verified again at the end.
+DEPLOYED_LABELS=()
+REVIVED=0
+UNVERIFIED=""
+
+_verify_deployed_labels() {
+    local uid label attempt
+    uid=$(id -u)
+
+    echo ""
+    echo -e "${G}=== 收尾驗證：${#DEPLOYED_LABELS[@]} 個 label 是否真的還在 launchctl list ===${N}"
+    if [ "$VERIFY_SETTLE_S" != "0" ]; then
+        sleep "$VERIFY_SETTLE_S"
+    fi
+
+    for label in "${DEPLOYED_LABELS[@]}"; do
+        if _label_loaded "$label"; then
+            echo -e "  ${G}✅${N} $label"
+            continue
+        fi
+
+        # 部署當下明明載入了，沉澱後卻不見 —— 有別人在我們背後把它 bootout。
+        echo -e "  ${R}❌${N} $label  部署後從 launchctl 消失了，重新 bootstrap…"
+        attempt=0
+        while [ "$attempt" -lt "$VERIFY_RETRIES" ]; do
+            attempt=$((attempt+1))
+            "$LAUNCHCTL_BIN" enable "gui/$uid/$label" 2>/dev/null || true
+            "$LAUNCHCTL_BIN" bootstrap "gui/$uid" "$LAUNCHAGENTS/$label.plist" 2>&1 \
+                | sed 's/^/        /' || true
+            if [ "$VERIFY_RETRY_DELAY_S" != "0" ]; then
+                sleep "$VERIFY_RETRY_DELAY_S"
+            fi
+            if _label_loaded "$label"; then
+                echo -e "        ${Y}⚠️  第 $attempt 次 bootstrap 救回 $label${N}"
+                echo -e "        ${Y}   （部署後有東西把它 bootout —— 查 health_check auto-repair /${N}"
+                echo -e "        ${Y}    另一個 redeploy：log show --predicate 'processID == 1' 找 booting out）${N}"
+                REVIVED=$((REVIVED+1))
+                break
+            fi
+        done
+
+        if ! _label_loaded "$label"; then
+            UNVERIFIED="${UNVERIFIED:+$UNVERIFIED }$label"
+            FAILED=$((FAILED+1))
+        fi
+    done
+
+    if [ $REVIVED -gt 0 ]; then
+        echo -e "  ${Y}⚠️  $REVIVED 個 label 是靠收尾 bootstrap 才救回來的${N}"
+    fi
+
+    if [ -n "$UNVERIFIED" ]; then
+        echo ""
+        echo -e "${R}❌ 下列 label 重部署後不在 launchctl list，bootstrap 重試 $VERIFY_RETRIES 次仍救不回：${N}" >&2
+        for label in $UNVERIFIED; do
+            echo -e "   ${R}- $label${N}" >&2
+        done
+        echo -e "${Y}   手動修：launchctl bootstrap gui/\$(id -u) $LAUNCHAGENTS/<label>.plist${N}" >&2
+    fi
+}
+
+run_post_deploy_smoke() {
+    echo ""
+    if [ "${RED_SKIP_POST_DEPLOY_SMOKE:-0}" = "1" ]; then
+        echo -e "${Y}=== Post-deploy smoke skipped（RED_SKIP_POST_DEPLOY_SMOKE=1）===${N}"
+    elif [ ! -x "$REPO/bin/red-smoke" ]; then
+        echo -e "${Y}⚠️ 找不到可執行的 $REPO/bin/red-smoke，略過 post-deploy smoke${N}"
+        if [ "${RED_POST_DEPLOY_SMOKE_REQUIRED:-0}" = "1" ] || [ $STRICT_SMOKE -eq 1 ]; then
+            FAILED=$((FAILED+1))
+        fi
+    else
+        echo -e "${G}=== Post-deploy smoke: ./bin/red-smoke ===${N}"
+        if "$REPO/bin/red-smoke"; then
+            echo -e "${G}✅ post-deploy smoke passed${N}"
+        else
+            smoke_rc=$?
+            echo -e "${Y}⚠️ post-deploy smoke failed (rc=$smoke_rc)${N}"
+            if [ "${RED_POST_DEPLOY_SMOKE_REQUIRED:-0}" = "1" ] || [ $STRICT_SMOKE -eq 1 ]; then
+                FAILED=$((FAILED+1))
+            fi
+        fi
+    fi
+}
+
+# Shared deploy mutual-exclusion lock. The SAME lock file + flock(2) semantics
+# are used by scripts/post_merge_redeploy.py (Python fcntl.flock) so a manual
+# redeploy and a merge-triggered redeploy can never run at once against the
+# main checkout — the 2026-06-13 corruption (two sessions: one mid `git merge`
+# + post-merge redeploy, the other about to redeploy; files vanished, HEAD
+# jumped between commits). See agent_core/deploy_lock.py.
+#
+# macOS ships no flock(1), so we open the lock file on fd 200 here and keep it
+# open for the rest of the script (the lock releases automatically on exit),
+# then let a short-lived Python helper take the flock on that inherited fd.
+# flock(2) locks live on the open file description, so the lock stays held
+# after the helper exits as long as this shell keeps fd 200 open.
+_acquire_deploy_lock() {
+    # A parent post_merge_redeploy.py may already hold the fleet-wide lock and
+    # invoke us per-daemon. Re-taking the same lock would only fail-fast, so
+    # trust the parent when it says it holds it.
+    if [ "${RED_DEPLOY_LOCK_HELD:-0}" = "1" ]; then
+        return 0
+    fi
+
+    local runtime_root="${RED_RUNTIME_DIR:-$REPO/var}"
+    local lock_dir="$runtime_root/run"
+    local lock_file="$lock_dir/deploy.lock"
+    mkdir -p "$lock_dir"
+
+    local pybin="$REPO/.venv/bin/python"
+    [ -x "$pybin" ] || pybin="$(command -v python3 2>/dev/null || true)"
+    if [ -z "$pybin" ]; then
+        echo -e "${Y}⚠️ 找不到 python3，無法取得部署鎖；繼續但不保證與其他部署互斥${N}" >&2
+        return 0
+    fi
+
+    # fd 200 must match the number passed to `hold-fd` below; bash 3.2 needs a
+    # literal fd in the redirection (no ${var}> auto-allocation).
+    exec 200>>"$lock_file"
+
+    local wait_args=()
+    if [ -n "${RED_DEPLOY_LOCK_WAIT:-}" ]; then
+        wait_args=(--wait "$RED_DEPLOY_LOCK_WAIT")
+    fi
+
+    if PYTHONPATH="$REPO${PYTHONPATH:+:$PYTHONPATH}" "$pybin" \
+            -m agent_core.deploy_lock hold-fd 200 "${wait_args[@]}"; then
+        return 0
+    fi
+
+    # Keep the interpolated $lock_file on its own ASCII-only line: bash 3.2
+    # under a bogus locale (e.g. the LC_CTYPE=C.UTF-8 that a Python parent
+    # exports) mangles an ASCII value wedged between full-width punctuation,
+    # which would garble the path. Plain Chinese lines render fine.
+    echo -e "${R}❌ 另一個部署正在進行中，拒絕並發部署以免撞爛主 checkout${N}" >&2
+    echo    "   lock: $lock_file" >&2
+    echo -e "${Y}   稍後再試；要排隊等待請設 RED_DEPLOY_LOCK_WAIT=<秒數> 再跑一次${N}" >&2
+    exit 1
+}
+
+# ── argparse ──
+for arg in "$@"; do
+    case "$arg" in
+        --dry-run) DRY_RUN=1 ;;
+        --check)   CHECK_ONLY=1 ;;
+        --force|-f) FORCE=1 ;;
+        --strict-smoke) STRICT_SMOKE=1 ;;
+        --rollback-last) ROLLBACK_LAST=1 ;;
+        --help|-h)
+            # 印到註解區塊結束為止，不寫死行號：原本是 sed -n '4,34p'，在使用
+            # 說明多兩行時就把 --strict-smoke 擠出視窗（靠 test_force_flag_in_help
+            # 才抓到）。以「第一個非註解行」為界，之後怎麼加都不會再截斷。
+            awk 'NR>=4 && /^#/ {print; next} NR>=4 {exit}' "$0"
+            exit 0
+            ;;
+        --*)
+            echo "未知 flag: $arg" >&2
+            exit 1
+            ;;
+        *)
+            ONLY_DAEMONS+=("$arg")
+            ;;
+    esac
+done
+
+if [ ! -d "$TEMPLATE_DIR" ]; then
+    echo -e "${R}❌ 找不到 $TEMPLATE_DIR${N}" >&2
+    exit 1
+fi
+
+if [ "${RED_DEPLOY_ENV:-}" = "production" ]; then
+    STRICT_SMOKE=1
+fi
+
+mkdir -p "$LAUNCHAGENTS"
+
+# ── 收集要處理的 plist ──
+plists=()
+for f in "$TEMPLATE_DIR"/com.xiaohong.*.plist; do
+    [ -f "$f" ] || continue
+    name=$(basename "$f" .plist)
+    short=${name#com.xiaohong.}
+    if ! _wanted "$short"; then
+        continue
+    fi
+    plists+=("$f")
+done
+
+# 打錯一個名字就整輪拒絕，不「其他照部署、錯的靜默跳過」——部署工具最貴的失效
+# 模式就是你以為它做了而它沒做。名字對不上時把可用清單一起印出來。
+unknown=()
+for want in ${ONLY_DAEMONS[@]+"${ONLY_DAEMONS[@]}"}; do
+    if [ ! -f "$TEMPLATE_DIR/com.xiaohong.$want.plist" ]; then
+        unknown+=("$want")
+    fi
+done
+if [ ${#unknown[@]} -gt 0 ]; then
+    echo -e "${R}❌ 這些 daemon 名稱不存在：${unknown[*]}${N}" >&2
+    echo "   （整輪不執行，免得只部署到對的那幾個卻以為全部都做了）" >&2
+    echo "   可用：" >&2
+    ls "$TEMPLATE_DIR"/com.xiaohong.*.plist | xargs -n1 basename | sed 's/com.xiaohong.//;s/.plist//' | sed 's/^/     /' >&2
+    exit 1
+fi
+
+if [ ${#plists[@]} -eq 0 ]; then
+    echo -e "${R}❌ 沒找到要處理的 plist${N}" >&2
+    exit 1
+fi
+
+# Acquire the deploy lock for state-mutating runs only. Read-only modes
+# (--dry-run / --check) touch neither launchd nor plists, so they must not be
+# refused by an in-flight deploy — and they don't need the lock themselves.
+if [ $DRY_RUN -eq 0 ] && [ $CHECK_ONLY -eq 0 ]; then
+    _acquire_deploy_lock
+fi
+
+if [ $ROLLBACK_LAST -eq 1 ]; then
+    echo -e "${G}== Rollback latest backup for ${#plists[@]} daemon plist(s) ==${N}"
+    [ $DRY_RUN -eq 1 ] && echo -e "${Y}（DRY-RUN：只 print 不執行）${N}"
+    [ $CHECK_ONLY -eq 1 ] && echo -e "${Y}（CHECK-ONLY：只 print 不執行）${N}"
+    echo ""
+
+    ROLLED_BACK=0
+    SKIPPED=0
+    FAILED=0
+    for tmpl in "${plists[@]}"; do
+        name=$(basename "$tmpl" .plist)
+        short=${name#com.xiaohong.}
+        target="$LAUNCHAGENTS/$name.plist"
+        backup=$(ls -t "$target".bak.* 2>/dev/null | head -1 || true)
+        if [ -z "$backup" ]; then
+            echo -e "  ${Y}⚠️${N} $short  (no backup found)"
+            SKIPPED=$((SKIPPED+1))
+            continue
+        fi
+        echo -e "  ${Y}↩${N} $short  rollback $(basename "$backup")"
+        if [ $DRY_RUN -eq 1 ] || [ $CHECK_ONLY -eq 1 ]; then
+            echo "        cp $backup $target"
+            echo "        launchctl unload $target"
+            echo "        launchctl load $target"
+            ROLLED_BACK=$((ROLLED_BACK+1))
+            continue
+        fi
+        if ! cp "$backup" "$target"; then
+            echo -e "        ${R}❌ cp rollback 失敗${N}"
+            FAILED=$((FAILED+1))
+            continue
+        fi
+        if _reload_daemon "$target" "$name" 0; then
+            echo -e "        ${G}↻ restored + reloaded${N}"
+            DEPLOYED_LABELS+=("$name")
+            ROLLED_BACK=$((ROLLED_BACK+1))
+        else
+            echo -e "        ${R}❌ launchctl load/bootstrap 都失敗，service 未載入${N}"
+            FAILED=$((FAILED+1))
+        fi
+    done
+
+    echo ""
+    echo -e "${G}=== rollback 統計 ===${N}"
+    echo "  restored:   $ROLLED_BACK"
+    echo "  skipped:    $SKIPPED"
+    [ $FAILED -gt 0 ] && echo -e "  ${R}failed:     $FAILED${N}"
+
+    if [ $DRY_RUN -eq 0 ] && [ $CHECK_ONLY -eq 0 ] && [ ${#DEPLOYED_LABELS[@]} -gt 0 ]; then
+        _verify_deployed_labels
+    fi
+
+    if [ $DRY_RUN -eq 0 ] && [ $CHECK_ONLY -eq 0 ] && [ $ROLLED_BACK -gt 0 ]; then
+        run_post_deploy_smoke
+    fi
+    echo ""
+    [ $FAILED -gt 0 ] && exit 1 || exit 0
+fi
+
+echo -e "${G}== Redeploy ${#plists[@]} daemon plist(s) ==${N}"
+# 把解析後的清單印出來：操作者要能一眼確認「我打的名字都被收到了」。
+if [ ${#ONLY_DAEMONS[@]} -gt 0 ]; then
+    echo -e "   指定：${ONLY_DAEMONS[*]}"
+fi
+[ $DRY_RUN -eq 1 ] && echo -e "${Y}（DRY-RUN：只 print 不執行）${N}"
+[ $CHECK_ONLY -eq 1 ] && echo -e "${Y}（CHECK-ONLY：只比對差異不部署）${N}"
+[ $FORCE -eq 1 ] && echo -e "${Y}（FORCE：plist 沒變也強制 reload — 用於改 daemon code 時）${N}"
+echo ""
+
+CHANGED=0
+RESTARTED=0
+SKIPPED=0
+FAILED=0
+FORCED=0
+SCHED_SKIPPED=0
+DEFERRED=0
+DEFERRED_LABELS=()
+
+for tmpl in "${plists[@]}"; do
+    name=$(basename "$tmpl" .plist)
+    short=${name#com.xiaohong.}
+    target="$LAUNCHAGENTS/$name.plist"
+
+    # ── 1. 產生帶絕對路徑的 plist 到暫存 ──
+    # @@RED_OFFSITE_DIR@@：每週備份的異地目的地，從部署當下的環境帶入（個人 Drive
+    # 路徑不寫進 template）。沒 export＝代成空字串＝backup 腳本靜默跳過異地推送。
+    rendered=$(mktemp -t "$name.XXXXXX.plist")
+    sed -e "s|@@REPO_ROOT@@|$REPO|g" \
+        -e "s|@@RED_OFFSITE_DIR@@|${RED_OFFSITE_DIR:-}|g" "$tmpl" > "$rendered"
+
+    # ── 2. 比對 ──
+    plist_unchanged=0
+    if [ -f "$target" ] && diff -q "$rendered" "$target" > /dev/null 2>&1; then
+        plist_unchanged=1
+    fi
+
+    if [ $plist_unchanged -eq 1 ] && [ $FORCE -eq 0 ]; then
+        echo -e "  ${G}✅${N} $short  (no change)"
+        SKIPPED=$((SKIPPED+1))
+        rm -f "$rendered"
+        continue
+    fi
+
+    if [ $plist_unchanged -eq 1 ] && [ $FORCE -eq 1 ]; then
+        echo -e "  ${Y}🔥${N} $short  (--force：plist 沒變但強制 reload)"
+        FORCED=$((FORCED+1))
+    else
+        CHANGED=$((CHANGED+1))
+        echo -e "  ${Y}🔄${N} $short  (plist 有差異)"
+    fi
+
+    if [ $CHECK_ONLY -eq 1 ]; then
+        diff "$rendered" "$target" 2>/dev/null | head -10 | sed 's/^/        /'
+        rm -f "$rendered"
+        continue
+    fi
+
+    if [ $DRY_RUN -eq 1 ]; then
+        echo "        cp $rendered $target"
+        echo "        launchctl unload $target"
+        echo "        launchctl load $target"
+        rm -f "$rendered"
+        continue
+    fi
+
+    # ── 2.5 排程型任務守門（2026-08-29 凌晨事故）──
+    # rag_sync_daily 01:00 開始夜跑，01:29 全艦隊 redeploy 輪到它：有 PID →
+    # 走就地路徑 → kickstart -k 把跑了 29 分鐘的夜跑 SIGTERM 掉；launchd 又因
+    # ThrottleInterval=1800 拒絕重生，kickstart CLI 阻塞 24 分鐘直到人工中斷。
+    # 而這一切毫無必要 —— 排程型 job 每輪都是新 process，下輪自然吃新碼。
+    if _plist_is_scheduled "$rendered"; then
+        sched_pid=$(_label_pid "$name")
+        if [ -n "$sched_pid" ]; then
+            if [ $plist_unchanged -eq 1 ]; then
+                echo -e "        ${Y}⏭ 排程任務跑到一半（pid=${sched_pid}）— 不殺${N}；plist 沒變，下輪 spawn 自然吃新碼"
+            else
+                echo -e "        ${R}⚠️ plist 有差異，但任務跑到一半（pid=${sched_pid}）— 本輪不動它${N}"
+                echo -e "           跑完後請單獨補：bin/redeploy-daemons $short"
+            fi
+            DEFERRED=$((DEFERRED+1))
+            DEFERRED_LABELS+=("$short")
+            rm -f "$rendered"
+            continue
+        fi
+        if [ $plist_unchanged -eq 1 ]; then
+            # 只有 --force 會走到這（unchanged 且沒 --force 的早就 continue 了）。
+            # 不重載：①新碼本來就會在下輪 spawn 生效，reload 零收益；②這類 plist
+            # 多半帶 KeepAlive={SuccessfulExit:false}，reload 隱含 RunAtLoad、會
+            # 誤觸發一輪（CLAUDE.md 鐵則 —— rag_sync 得自己加守門擋的就是這個）。
+            echo -e "        ${G}⏭ 排程任務、plist 沒變${N}：不重載（下輪 spawn 自然吃新碼）"
+            SCHED_SKIPPED=$((SCHED_SKIPPED+1))
+            rm -f "$rendered"
+            continue
+        fi
+        # plist 真的變了且沒在跑 → launchd 必須重讀 → 照舊走 unload/load
+    fi
+
+    # ── 3. 真部署 ──
+    if [ -f "$target" ]; then
+        cp "$target" "$target.bak.$(date +%Y%m%d-%H%M%S)" || true
+    fi
+    if ! cp "$rendered" "$target"; then
+        echo -e "        ${R}❌ cp 失敗${N}"
+        FAILED=$((FAILED+1))
+        rm -f "$rendered"
+        continue
+    fi
+    rm -f "$rendered"
+
+    # ── 4. unload + load（透過 _reload_daemon 處理 disabled-set + 驗證實際載入）──
+    if _reload_daemon "$target" "$name" "$plist_unchanged"; then
+        if [ "$RELOAD_METHOD" = "in-place" ]; then
+            echo -e "        ${G}↻ restarted in place${N}（label 全程沒離開 launchd）"
+        else
+            echo -e "        ${G}↻ reloaded${N}"
+        fi
+        DEPLOYED_LABELS+=("$name")
+        RESTARTED=$((RESTARTED+1))
+    else
+        echo -e "        ${R}❌ launchctl load/bootstrap 都失敗，service 未載入${N}"
+        FAILED=$((FAILED+1))
+    fi
+done
+
+echo ""
+echo -e "${G}=== 統計 ===${N}"
+echo "  unchanged:  $SKIPPED"
+echo "  changed:    $CHANGED"
+[ $FORCED -gt 0 ] && echo "  forced:     $FORCED"
+echo "  restarted:  $RESTARTED"
+[ $SCHED_SKIPPED -gt 0 ] && echo "  sched-skip: ${SCHED_SKIPPED}（排程型不重載，下輪自然吃新碼）"
+[ $DEFERRED -gt 0 ] && echo -e "  ${Y}deferred:   ${DEFERRED}（跑到一半沒動：${DEFERRED_LABELS[*]} — 跑完請單獨補 redeploy）${N}"
+[ $FAILED -gt 0 ] && echo -e "  ${R}failed:     $FAILED${N}"
+
+# ── 5. 收尾驗證：load 完那一秒驗到的「已載入」不算數（見函式註解）──
+if [ $DRY_RUN -eq 0 ] && [ $CHECK_ONLY -eq 0 ] && [ ${#DEPLOYED_LABELS[@]} -gt 0 ]; then
+    _verify_deployed_labels
+fi
+
+# ── 6. 列當前 daemon 狀態 ──
+if [ $DRY_RUN -eq 0 ] && [ $CHECK_ONLY -eq 0 ] && [ $RESTARTED -gt 0 ]; then
+    echo ""
+    echo -e "${G}=== 重啟後 daemon 狀態 ===${N}"
+    "$LAUNCHCTL_BIN" list | grep com.xiaohong | awk '{
+        pid = $1
+        exit_status = $2
+        label = $3
+        if (pid == "-") {
+            status = "idle"
+        } else if (exit_status == "0") {
+            status = "✅ running pid=" pid
+        } else {
+            status = "🔴 last_exit=" exit_status " pid=" pid
+        }
+        printf "  %-30s %s\n", label, status
+    }'
+fi
+
+if [ $DRY_RUN -eq 0 ] && [ $CHECK_ONLY -eq 0 ] && [ $RESTARTED -gt 0 ]; then
+    run_post_deploy_smoke
+fi
+
+echo ""
+[ $FAILED -gt 0 ] && exit 1 || exit 0

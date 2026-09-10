@@ -1,0 +1,165 @@
+{
+  "task_name": "客戶 DN/CN 建立",
+  "video_summary": "示範在 FAST ERP 建立客戶 DN/CN 單據，包含樣品關聯與手動建立費用。",
+  "erp_name": "FAST ERP (Oracle-based)",
+  "prerequisites": "已登入系統並位於主流程畫面；相關樣品單已出貨且勾選「收費」。",
+  "menu_path": "主選單流程圖 → 下方中間「客戶 DN/CN 建立」圖示",
+  "steps": [
+    {
+      "n": 1,
+      "action": "click",
+      "target_description": "主選單流程圖下方的「客戶 DN/CN 建立」按鈕",
+      "visual_cue": "文字為『客戶 DN/CN 建立』的淺藍色矩形，帶有箭頭指向",
+      "why": "進入客戶借貸通知單（DN/CN）管理介面"
+    },
+    {
+      "n": 2,
+      "action": "click",
+      "target_description": "上方的「客戶 DN/CN 建立」分頁標籤",
+      "visual_cue": "視窗中間標籤頁，文字『客戶 DN/CN 建立』",
+      "why": "切換至新增與編輯畫面"
+    },
+    {
+      "n": 3,
+      "action": "click",
+      "target_description": "左上角工具列的「插入記錄」按鈕",
+      "visual_cue": "綠色加號圖示",
+      "why": "開啟一筆新的空白單據"
+    },
+    {
+      "n": 4,
+      "action": "select",
+      "target_description": "「單據類別」下拉選單",
+      "visual_cue": "標籤為『單據類別』，帶有紅星必填符號",
+      "example_value": "DN",
+      "why": "區分是扣款單(DN)或折讓單(CN)"
+    },
+    {
+      "n": 5,
+      "action": "select",
+      "target_description": "日期選取器",
+      "visual_cue": "標籤為『日期』，紅星必填",
+      "example_value": "2020/06/17",
+      "why": "設定單據日期"
+    },
+    {
+      "n": 6,
+      "action": "select",
+      "target_description": "「開發季節」、「開發小組」、「付款客戶」欄位",
+      "visual_cue": "帶有黃色放大鏡圖示的選單欄位",
+      "example_value": "開發季節: TS, 付款客戶: TEST-01",
+      "why": "設定篩選條件，旁白強調這三個條件必須與樣品單一致才能取到資料"
+    },
+    {
+      "n": 7,
+      "action": "select",
+      "target_description": "「性質」下拉選單",
+      "visual_cue": "標籤為『性質』，紅星必填",
+      "example_value": "1.樣品",
+      "why": "決定單據來源是既有樣品單或手動輸入"
+    },
+    {
+      "n": 8,
+      "action": "click",
+      "target_description": "工具列的「儲存」按鈕",
+      "visual_cue": "磁碟片圖示",
+      "why": "先儲存表頭資訊以產生系統編號"
+    },
+    {
+      "n": 9,
+      "action": "click",
+      "target_description": "中間的「選擇樣品單」按鈕",
+      "visual_cue": "灰色長方形按鈕，文字『選擇樣品單』",
+      "why": "開啟樣品單選擇視窗"
+    },
+    {
+      "n": 10,
+      "action": "click",
+      "target_description": "彈出視窗中的樣品清單勾選框",
+      "visual_cue": "清單左側的白色方框",
+      "why": "選取要轉入 DN/CN 的樣品項目"
+    },
+    {
+      "n": 11,
+      "action": "click",
+      "target_description": "彈出視窗下方的「確認」按鈕",
+      "visual_cue": "藍色文字按鈕『確認』",
+      "why": "將選中資料帶入單據明細"
+    },
+    {
+      "n": 12,
+      "action": "click",
+      "target_description": "工具列的「生效」按鈕",
+      "visual_cue": "綠色勾號圖示",
+      "why": "正式發佈單據，生效後不可再修改資料"
+    },
+    {
+      "n": 13,
+      "action": "click",
+      "target_description": "「基礎資料及附加附件建立」分頁標籤",
+      "visual_cue": "最右側標籤頁，文字『基礎資料及附加附件建立』",
+      "why": "進行附件上傳或自定義費用項目設定"
+    },
+    {
+      "n": 14,
+      "action": "click",
+      "target_description": "性質為「其他」時的「手動輸入」按鈕",
+      "visual_cue": "明細區上方的『手動輸入』按鈕",
+      "why": "若性質非樣品，需點此按鈕方可在下方清單手動輸入費用名稱與金額"
+    }
+  ],
+  "fields_schema": {
+    "單據類別": {
+      "type": "string",
+      "required": true,
+      "example": "DN",
+      "notes": "DN 為扣款，CN 為折讓"
+    },
+    "日期": {
+      "type": "date",
+      "required": true,
+      "example": "2020/06/17"
+    },
+    "開發季節": {
+      "type": "string",
+      "required": true,
+      "example": "TS"
+    },
+    "開發小組": {
+      "type": "string",
+      "required": true,
+      "example": "TS"
+    },
+    "付款客戶": {
+      "type": "string",
+      "required": true,
+      "example": "TEST-01"
+    },
+    "性質": {
+      "type": "string",
+      "required": true,
+      "example": "1.樣品",
+      "notes": "1.樣品, 9.其他"
+    },
+    "項目名稱": {
+      "type": "string",
+      "required": false,
+      "example": "運送費",
+      "notes": "性質為其他時，於明細區手動輸入"
+    }
+  },
+  "validation": "儲存後會自動編號（如 DN20060001），點擊「生效」按鈕後單據狀態變更且欄位鎖定無法修改。",
+  "common_pitfalls": [
+    "若樣品單在出貨單介面沒勾選「收費」，則在 DN/CN 建立時會查不到資料。",
+    "開發季節、開發小組、付款客戶三者若與樣品單不完全相符，將無法帶出樣品清單。",
+    "未先儲存表頭就點擊「選擇樣品單」，系統會報錯。"
+  ],
+  "narrator_tips": [
+    "生效後的資料不可再做修改，請務必確認單價、數量正確。",
+    "若有附件檔案，可至第三個分頁「基礎資料及附加附件建立」進行讀取上傳。",
+    "手動輸入其他費用前，須先在第三個分頁建立「其他項目」代碼。"
+  ],
+  "_video_name": "客戶DN-CN建立.mp4",
+  "_video_path": "開發部教學",
+  "_video_index": 6
+}

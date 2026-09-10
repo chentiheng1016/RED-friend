@@ -1,0 +1,303 @@
+#!/bin/bash
+# migrate-chroma-to-server — switch all daemons from PersistentClient to HttpClient.
+#
+# Problem: ~18 launchd daemons share one chroma.sqlite3 (currently 11 GB) via
+# PersistentClient. Logs already show SQLITE_CANTOPEN (code 14) collisions from
+# mailcheck/ponder/telegram/morning. Read side falls back to BM25; write side
+# can silently corrupt the file.
+#
+# Fix (per agent_core/memory.py:78-112 + launchd/templates/com.xiaohong.chroma.plist):
+#   1. Deploy com.xiaohong.chroma (one chroma run server, port 8000)
+#   2. Set RED_CHROMA_HTTP_URL=http://127.0.0.1:8000 in every daemon's plist
+#   3. Reload daemons → they switch to HttpClient, server serializes writes
+#
+# Critical constraint (from chroma.plist docstring):
+#   "daemons without the env var fall back to PersistentClient and will
+#    conflict with the server on the same on-disk files, so do all-or-nothing
+#    per host."
+#
+# Therefore: stop all chroma-touching daemons → start chroma server → reload
+# daemons (now with env var). Brief downtime (~30s) but no half-migrated state.
+#
+# Usage:
+#   ./bin/migrate-chroma-to-server --dry-run           # show all actions, change nothing
+#   ./bin/migrate-chroma-to-server backup              # phase 1 only: backup chroma.sqlite3
+#   ./bin/migrate-chroma-to-server patch               # phase 2 only: edit plists
+#   ./bin/migrate-chroma-to-server cutover             # phase 3: stop daemons, start server, reload
+#   ./bin/migrate-chroma-to-server all                 # run all phases
+#
+# Rollback:
+#   ./bin/migrate-chroma-to-server rollback            # remove env var, stop chroma, reload daemons
+
+set -euo pipefail
+
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
+LAUNCHAGENTS="$HOME/Library/LaunchAgents"
+TEMPLATES="$REPO/launchd/templates"
+CHROMA_DB="$REPO/var/data/chroma_db"
+CHROMA_SQLITE="$CHROMA_DB/chroma.sqlite3"
+CHROMA_URL="http://127.0.0.1:8000"
+BACKUP_ROOT="$REPO/var/backups"
+TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
+
+# All daemons that load agent_core/memory.py (directly or via skill tools).
+# Source: launchd/templates/com.xiaohong.chroma.plist docstring + actual
+# `launchctl list | grep com.xiaohong` on 2026-05-22.
+DAEMONS=(
+  telegram
+  telegram_black telegram_blue telegram_gray telegram_green
+  telegram_indigo telegram_orange telegram_purple telegram_white telegram_yellow
+  email_ingest briefing_15min morning ponder
+  mailcheck sample_check health_check dispatcher
+)
+
+# Colors
+G='\033[0;32m'; Y='\033[0;33m'; R='\033[0;31m'; B='\033[0;34m'; N='\033[0m'
+
+DRY_RUN=0
+PHASE="all"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --dry-run) DRY_RUN=1; shift ;;
+        backup|patch|cutover|rollback|verify|all) PHASE="$1"; shift ;;
+        -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
+        *) echo "unknown arg: $1"; exit 2 ;;
+    esac
+done
+
+say()  { echo -e "${B}[migrate]${N} $*"; }
+ok()   { echo -e "${G}[ ok ]${N} $*"; }
+warn() { echo -e "${Y}[warn]${N} $*"; }
+die()  { echo -e "${R}[fail]${N} $*"; exit 1; }
+
+# `run` executes the command unless --dry-run is set. The whole command is
+# passed as a single string to allow pipes/redirects.
+run() {
+    if [[ $DRY_RUN -eq 1 ]]; then
+        echo -e "  ${Y}DRY${N} $*"
+    else
+        echo -e "  ${G}>>>${N} $*"
+        eval "$@"
+    fi
+}
+
+# -----------------------------------------------------------------------------
+# Phase 1: Backup chroma.sqlite3 (cheap APFS clone — copy-on-write, no actual
+# bytes copied unless modified later).
+# -----------------------------------------------------------------------------
+phase_backup() {
+    say "Phase 1: backup chroma.sqlite3"
+
+    [[ -f "$CHROMA_SQLITE" ]] || die "$CHROMA_SQLITE not found"
+
+    local size_bytes free_bytes
+    size_bytes=$(stat -f%z "$CHROMA_SQLITE")
+    free_bytes=$(df -k "$CHROMA_DB" | awk 'NR==2 {print $4 * 1024}')
+    say "  source size: $(numfmt --to=iec $size_bytes 2>/dev/null || echo $size_bytes bytes)"
+    say "  free disk:   $(numfmt --to=iec $free_bytes 2>/dev/null || echo $free_bytes bytes)"
+
+    local backup_dir="$BACKUP_ROOT/chroma-migration-$TIMESTAMP"
+    run "mkdir -p '$backup_dir'"
+    # `cp -c` uses APFS clonefile() — near-instant, takes near-zero extra space
+    # until something modifies the original. Falls back to full copy on non-APFS.
+    run "cp -c '$CHROMA_SQLITE' '$backup_dir/chroma.sqlite3' || cp '$CHROMA_SQLITE' '$backup_dir/chroma.sqlite3'"
+    run "echo '$TIMESTAMP: pre-migration backup, src=$CHROMA_SQLITE' > '$backup_dir/README.txt'"
+
+    ok "backup → $backup_dir"
+}
+
+# -----------------------------------------------------------------------------
+# Phase 2: Patch each daemon plist (template + installed copy) to add
+# RED_CHROMA_HTTP_URL to EnvironmentVariables.
+#
+# We patch the TEMPLATE so future redeploys keep the env var, AND the
+# installed copy at ~/Library/LaunchAgents so the current load picks it up.
+#
+# Uses `bin/inject-plist-env` (Python) rather than `plutil -replace`. The
+# latter works but rewrites the whole file in canonical form — losing key
+# order, comments, and indentation. The injector does a surgical text insert
+# so the diff is exactly +2 lines per file, keeping git history readable.
+# Idempotency: the injector skips files that already have the key set.
+# -----------------------------------------------------------------------------
+phase_patch() {
+    say "Phase 2: patch ${#DAEMONS[@]} daemon plists (template + installed)"
+
+    local plists=()
+    for d in "${DAEMONS[@]}"; do
+        for variant in "$TEMPLATES/com.xiaohong.$d.plist" "$LAUNCHAGENTS/com.xiaohong.$d.plist"; do
+            [[ -f "$variant" ]] && plists+=("$variant")
+        done
+    done
+
+    local injector="$REPO/bin/inject-plist-env"
+    [[ -x "$injector" ]] || die "$injector not found or not executable"
+
+    if [[ $DRY_RUN -eq 1 ]]; then
+        run "'$injector' --dry-run ${plists[*]}"
+    else
+        run "'$injector' ${plists[*]}"
+        # plutil -lint as a belt-and-suspenders integrity check
+        for p in "${plists[@]}"; do
+            run "plutil -lint '$p' >/dev/null"
+        done
+    fi
+
+    ok "phase 2 done (${#plists[@]} plists processed)"
+}
+
+# -----------------------------------------------------------------------------
+# Phase 3: Cutover. Stop all chroma-touching daemons, install + start chroma
+# server, verify heartbeat, then reload all daemons (now with env var).
+#
+# Order matters: if we start chroma first while daemons are still running with
+# PersistentClient, both try to hold the SQLite file → exactly the corruption
+# scenario we're trying to avoid.
+# -----------------------------------------------------------------------------
+phase_cutover() {
+    say "Phase 3: cutover (stop daemons → start chroma → reload daemons)"
+
+    # 3a. Stop all chroma-touching daemons
+    say "  3a. stop ${#DAEMONS[@]} daemons"
+    for d in "${DAEMONS[@]}"; do
+        local plist="$LAUNCHAGENTS/com.xiaohong.$d.plist"
+        [[ -f "$plist" ]] || continue
+        run "launchctl bootout gui/\$(id -u) '$plist' 2>/dev/null || launchctl unload '$plist' 2>/dev/null || true"
+    done
+
+    # Brief pause so launchd's exit handlers settle and SQLite file is fully
+    # released (sometimes a daemon takes a moment to close handles).
+    run "sleep 3"
+
+    # 3b. Install + start chroma server (via redeploy-daemons which handles
+    # the load-vs-bootstrap nonsense — see redeploy-daemons docstring)
+    say "  3b. install + start chroma server"
+    run "RED_SKIP_POST_DEPLOY_SMOKE=1 '$REPO/bin/redeploy-daemons' chroma --force"
+
+    # 3c. Verify heartbeat (retry up to 60s — chroma needs time to open 11 GB DB)
+    say "  3c. verify heartbeat at $CHROMA_URL"
+    if [[ $DRY_RUN -eq 0 ]]; then
+        local i
+        for i in $(seq 1 60); do
+            if curl -fsS "$CHROMA_URL/api/v2/heartbeat" >/dev/null 2>&1; then
+                ok "    heartbeat OK after ${i}s"
+                break
+            fi
+            if [[ $i -eq 60 ]]; then
+                die "chroma server didn't come up in 60s — check var/logs/daemon-chroma.log; rollback with: $0 rollback"
+            fi
+            sleep 1
+        done
+    else
+        echo -e "  ${Y}DRY${N} curl $CHROMA_URL/api/v2/heartbeat (retry 60s)"
+    fi
+
+    # 3d. Reload all daemons with new env var
+    say "  3d. reload all daemons with RED_CHROMA_HTTP_URL"
+    for d in "${DAEMONS[@]}"; do
+        local plist="$LAUNCHAGENTS/com.xiaohong.$d.plist"
+        [[ -f "$plist" ]] || continue
+        run "launchctl bootstrap gui/\$(id -u) '$plist' 2>/dev/null || launchctl load '$plist' 2>/dev/null || true"
+    done
+
+    ok "cutover done"
+}
+
+# -----------------------------------------------------------------------------
+# Verify: check daemon logs for the success path (HttpClient backend log line)
+# and absence of new SQLITE_CANTOPEN errors after cutover time.
+# -----------------------------------------------------------------------------
+phase_verify() {
+    say "Verify post-migration"
+
+    if [[ $DRY_RUN -eq 1 ]]; then
+        echo -e "  ${Y}DRY${N} would check chroma server requests + scan daemon log tails"
+        return
+    fi
+
+    # 1. Heartbeat — fundamental "server alive" check
+    if curl -fsS "$CHROMA_URL/api/v2/heartbeat" >/dev/null 2>&1; then
+        ok "  chroma heartbeat OK"
+    else
+        warn "  chroma heartbeat FAIL"
+        return
+    fi
+
+    # 2. Chroma server received requests → proves SOMEONE is routing through it.
+    # If this is 0, no daemon has actually connected yet (could be all idle,
+    # or env var didn't take).
+    local req_count
+    req_count=$(grep -c "HTTP request" "$REPO/var/logs/daemon-chroma.log" 2>/dev/null || echo 0)
+    if [[ "$req_count" -gt 0 ]]; then
+        ok "  chroma server received $req_count requests since startup"
+    else
+        warn "  chroma server has received NO requests — daemons may not be using it"
+    fi
+
+    # 3. Scan daemon log tails for fresh SQLITE_CANTOPEN errors. We can't filter
+    # by timestamp reliably (logs lack dates), so use the tail-N heuristic:
+    # if "向量資料庫載入失敗" appears in the last 200 lines, it's likely recent.
+    # Definitive proof would be to grep with a sentinel marker placed at cutover
+    # time, but that requires modifying the daemon's logging — too invasive.
+    local stale=0
+    for d in "${DAEMONS[@]}"; do
+        local log="$REPO/var/logs/daemon-${d/_/-}.log"
+        [[ -f "$log" ]] || log="$REPO/var/logs/daemon-${d}.log"
+        [[ -f "$log" ]] || continue
+        if tail -200 "$log" 2>/dev/null | grep -q "向量資料庫載入失敗"; then
+            warn "    $d: recent SQLITE_CANTOPEN in last 200 lines — env var may not be active"
+            ((stale++)) || true
+        fi
+    done
+    if [[ $stale -eq 0 ]]; then
+        ok "  no recent SQLITE_CANTOPEN errors in any daemon log tail"
+    fi
+}
+
+# -----------------------------------------------------------------------------
+# Rollback: undo phase 2 + phase 3. Removes env var from plists, stops chroma,
+# reloads daemons (back to PersistentClient).
+# -----------------------------------------------------------------------------
+phase_rollback() {
+    say "Rollback: remove env var, stop chroma, reload daemons"
+
+    for d in "${DAEMONS[@]}"; do
+        for variant in "$TEMPLATES/com.xiaohong.$d.plist" "$LAUNCHAGENTS/com.xiaohong.$d.plist"; do
+            [[ -f "$variant" ]] || continue
+            if /usr/libexec/PlistBuddy -c "Print :EnvironmentVariables:RED_CHROMA_HTTP_URL" "$variant" >/dev/null 2>&1; then
+                run "plutil -remove EnvironmentVariables.RED_CHROMA_HTTP_URL '$variant'"
+            fi
+        done
+    done
+
+    local chroma_plist="$LAUNCHAGENTS/com.xiaohong.chroma.plist"
+    if [[ -f "$chroma_plist" ]]; then
+        run "launchctl bootout gui/\$(id -u) '$chroma_plist' 2>/dev/null || launchctl unload '$chroma_plist' 2>/dev/null || true"
+    fi
+
+    # Reload daemons (without env var now → PersistentClient)
+    for d in "${DAEMONS[@]}"; do
+        local plist="$LAUNCHAGENTS/com.xiaohong.$d.plist"
+        [[ -f "$plist" ]] || continue
+        run "launchctl bootout gui/\$(id -u) '$plist' 2>/dev/null || true"
+        run "launchctl bootstrap gui/\$(id -u) '$plist' 2>/dev/null || launchctl load '$plist' 2>/dev/null || true"
+    done
+
+    ok "rollback done — back to PersistentClient on all daemons"
+}
+
+# -----------------------------------------------------------------------------
+# Main
+# -----------------------------------------------------------------------------
+[[ $DRY_RUN -eq 1 ]] && say "DRY-RUN mode: no changes will be made"
+say "phase: $PHASE"
+
+case "$PHASE" in
+    backup)   phase_backup ;;
+    patch)    phase_patch ;;
+    cutover)  phase_cutover ;;
+    verify)   phase_verify ;;
+    rollback) phase_rollback ;;
+    all)      phase_backup; phase_patch; phase_cutover; phase_verify ;;
+    *)        die "unknown phase: $PHASE" ;;
+esac

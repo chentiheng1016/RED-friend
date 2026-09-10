@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bin/redeploy-daemons *)",
+      "Bash(/Users/user/RED/bin/redeploy-daemons *)",
+      "Bash(RED_SKIP_POST_DEPLOY_SMOKE=1 bin/redeploy-daemons *)",
+      "Bash(cd /Users/user/RED && bin/redeploy-daemons *)",
+      "Bash(cd /Users/user/RED && RED_SKIP_POST_DEPLOY_SMOKE=1 bin/redeploy-daemons *)"
+    ]
+  }
+}

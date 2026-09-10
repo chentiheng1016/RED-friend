@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+{% block title %}{{ label }} — 小紅員工入口{% endblock %}
+{% block extra_style %}
+.dept-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.dept-badge { background: #c0392b; color: white; padding: 4px 12px;
+              border-radius: 20px; font-size: .85rem; font-weight: 600; }
+.chat-window { height: 480px; overflow-y: auto; border: 1px solid #e0e0e0;
+               border-radius: 8px; padding: 16px; background: #fafafa;
+               display: flex; flex-direction: column; gap: 12px; }
+.msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; line-height: 1.5; }
+.msg-user { align-self: flex-end; background: #c0392b; color: white; border-bottom-right-radius: 4px; }
+.msg-bot  { align-self: flex-start; background: white; border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 4px; white-space: pre-wrap; word-break: break-word; }
+.msg-error { align-self: flex-start; background: #fdecea; border: 1px solid #f5c6cb;
+             color: #721c24; border-bottom-left-radius: 4px; }
+.input-row { display: flex; gap: 8px; margin-top: 12px; }
+.input-row input { flex: 1; padding: 10px 14px; border: 1px solid #ddd;
+                   border-radius: 6px; font-size: 1rem; outline: none; }
+.input-row input:focus { border-color: #c0392b; }
+.quick-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.quick-btn { background: white; border: 1px solid #ddd; border-radius: 20px;
+             padding: 5px 14px; font-size: .85rem; cursor: pointer; color: #555; }
+.quick-btn:hover { border-color: #c0392b; color: #c0392b; }
+.confirm-banner { background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px;
+                  padding: 12px 16px; margin-top: 8px; display: none; }
+.confirm-banner p { margin-bottom: 8px; font-size: .95rem; }
+.confirm-row { display: flex; gap: 8px; }
+/* ── Gray Trigger 回報表單 ── */
+.anomaly-form { display: none; margin-top: 16px; }
+.anomaly-form.visible { display: block; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group label { font-size: .85rem; color: #666; font-weight: 500; }
+.form-group input, .form-group select, .form-group textarea {
+  padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px;
+  font-size: .95rem; font-family: inherit; }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  border-color: #c0392b; outline: none; }
+.form-group textarea { resize: vertical; min-height: 64px; }
+.form-full { grid-column: 1 / -1; }
+{% endblock %}
+{% block content %}
+<div class="dept-header">
+  <span class="dept-badge">{{ color }}</span>
+  <h2>{{ label }}</h2>
+  {% if user.is_boss == "True" %}
+  <a href="/" style="margin-left:auto; font-size:.85rem; color:#888;">← 返回總覽</a>
+  {% endif %}
+</div>
+
+{% if broadcasts %}
+<div class="broadcast-banner" style="background:#e7f3ff; border:1px solid #4a90d9; border-radius:6px; padding:10px 14px; margin-bottom:16px;">
+  {% for b in broadcasts %}
+  <p style="margin:0 0 4px; font-size:.95rem;">📢 {{ b }}</p>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="card" style="padding:16px">
+  <div class="quick-btns" id="quickBtns"></div>
+  <div class="chat-window" id="chatWindow">
+    <div class="msg msg-bot">👋 您好，{{ user.name }}！請輸入問題或點上方快捷鍵。</div>
+  </div>
+  <div id="confirmBanner" class="confirm-banner">
+    <p id="confirmMsg"></p>
+    <div class="confirm-row">
+      <button class="btn btn-confirm" onclick="doConfirm()">✅ 確認執行</button>
+      <button class="btn btn-secondary" onclick="cancelConfirm()">取消</button>
+    </div>
+  </div>
+  <div class="input-row">
+    <input id="msgInput" type="text" placeholder="輸入問題（例如：查最新樣品進度）" onkeydown="if(event.key==='Enter')sendMsg()">
+    <button class="btn btn-primary" onclick="sendMsg()">送出</button>
+  </div>
+</div>
+
+{% if color == 'gray' %}
+<div class="card anomaly-form" id="anomalyForm">
+  <h3 style="margin-bottom:16px">🚨 回報生產異常</h3>
+  <div class="form-grid">
+    <div class="form-group">
+      <label for="f_order_id">訂單編號 *</label>
+      <input type="text" id="f_order_id" placeholder="例：ORD-2026-001">
+    </div>
+    <div class="form-group">
+      <label for="f_product">產品型號 *</label>
+      <input type="text" id="f_product" placeholder="例：PA-100">
+    </div>
+    <div class="form-group">
+      <label for="f_customer">客戶名稱 *</label>
+      <input type="text" id="f_customer" placeholder="例：ABC Corp">
+    </div>
+    <div class="form-group">
+      <label for="f_original_ecd">原定交期 *</label>
+      <input type="date" id="f_original_ecd">
+    </div>
+    <div class="form-group">
+      <label for="f_severity">嚴重程度 *</label>
+      <select id="f_severity">
+        <option value="low">🟢 低（預估延誤 3 天）</option>
+        <option value="medium" selected>🟡 中（預估延誤 7 天）</option>
+        <option value="high">🔴 高（預估延誤 14 天）</option>
+      </select>
+    </div>
+    <div class="form-group form-full">
+      <label for="f_reason">異常原因 *</label>
+      <textarea id="f_reason" placeholder="說明導致生產異常的原因…"></textarea>
+    </div>
+  </div>
+  <div style="display:flex; gap:8px; margin-top:16px; flex-wrap:wrap">
+    <button class="btn btn-primary" onclick="submitAnomalyReport()">🚨 提交回報</button>
+    <button class="btn btn-secondary" onclick="toggleAnomalyForm()">取消</button>
+  </div>
+</div>
+{% endif %}
+
+<script>
+const COLOR = "{{ color }}";
+const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || "";
+const QUICK_INTENTS = {
+  orange: [["查客戶報價","query.customer_360"],["搜尋 Email","query.search_emails"]],
+  yellow: [
+    ["查採購單","query.list_purchase_orders"],
+    ["查供應商","query.suppliers"],
+    ["庫存警示","query.inventory_alerts"],
+    ["供應風險","query.risks"],
+  ],
+  green:  [["查樣品列表","query.list_samples"],["查樣品狀態","query.sample_status"]],
+  blue:   [["查出貨狀態","query.list_shipments"]],
+  indigo: [["查庫存","query.list_inventory"]],
+  purple: [["查帳目","query.list_accounts"]],
+  gray:   [["查生產進度","query.production_status"],["📋 回報異常","__anomaly_form__"]],
+  black:  [["查收支","query.list_transactions"]],
+  white:  [["查合約列表","query.list_specs"],["搜尋文件","query.search_docs"]],
+};
+
+let pendingCommand = null;
+
+// Build quick buttons
+(QUICK_INTENTS[COLOR] || []).forEach(([label, intent]) => {
+  const btn = document.createElement("button");
+  btn.className = "quick-btn";
+  btn.textContent = label;
+  if (intent === "__anomaly_form__") {
+    btn.onclick = () => toggleAnomalyForm();
+  } else {
+    btn.onclick = () => callIntent(intent, {});
+  }
+  document.getElementById("quickBtns").appendChild(btn);
+});
+
+function appendMsg(text, cls) {
+  const win = document.getElementById("chatWindow");
+  const div = document.createElement("div");
+  div.className = "msg " + cls;
+  div.textContent = text;
+  win.appendChild(div);
+  win.scrollTop = win.scrollHeight;
+}
+
+async function callIntent(intent, payload) {
+  const isCommand = intent.startsWith("command.");
+  const endpoint = isCommand ? `/api/dept/${COLOR}/command` : `/api/dept/${COLOR}/query`;
+  appendMsg(intent + (Object.keys(payload).length ? " " + JSON.stringify(payload) : ""), "msg-user");
+  try {
+    const resp = await fetch(endpoint, {
+      method: "POST",
+      headers: {"Content-Type": "application/json", "X-CSRF-Token": CSRF_TOKEN},
+      body: JSON.stringify({intent, payload}),
+    });
+    const data = await resp.json();
+    if (data.requires_confirm) {
+      // Store the server-issued challenge token — must be echoed back to execute.
+      pendingCommand = {intent, payload, confirm_token: data.confirm_token};
+      document.getElementById("confirmMsg").textContent = data.message;
+      document.getElementById("confirmBanner").style.display = "block";
+      return;
+    }
+    if (data.error) { appendMsg("❌ " + data.error, "msg-error"); return; }
+    const result = data.result;
+    if (typeof result === "string") appendMsg(result, "msg-bot");
+    else if (result && result.text) appendMsg(result.text, "msg-bot");
+    else appendMsg(JSON.stringify(result, null, 2), "msg-bot");
+  } catch(e) { appendMsg("❌ 連線失敗：" + e, "msg-error"); }
+}
+
+async function doConfirm() {
+  if (!pendingCommand) return;
+  document.getElementById("confirmBanner").style.display = "none";
+  const {intent, payload, confirm_token} = pendingCommand;
+  pendingCommand = null;
+  const resp = await fetch(`/api/dept/${COLOR}/command`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json", "X-CSRF-Token": CSRF_TOKEN},
+    body: JSON.stringify({intent, payload, confirm_token}),
+  });
+  const data = await resp.json();
+  if (data.error) { appendMsg("❌ " + data.error, "msg-error"); return; }
+  const result = data.result;
+  // Gray Trigger — show structured report + sales notice
+  if (result && result.report) {
+    appendMsg(result.report, "msg-bot");
+    if (result.orange_notice) appendMsg(result.orange_notice, "msg-bot");
+    return;
+  }
+  if (typeof result === "string") appendMsg(result, "msg-bot");
+  else if (result && result.text) appendMsg(result.text, "msg-bot");
+  else appendMsg(JSON.stringify(result, null, 2), "msg-bot");
+}
+
+function cancelConfirm() {
+  pendingCommand = null;
+  document.getElementById("confirmBanner").style.display = "none";
+  appendMsg("已取消。", "msg-bot");
+}
+
+// ── Gray Trigger 回報表單 ────────────────────────────────────────────────
+function toggleAnomalyForm() {
+  const form = document.getElementById("anomalyForm");
+  if (!form) return;
+  const opening = !form.classList.contains("visible");
+  form.classList.toggle("visible");
+  if (opening) {
+    // Clear fields every time the form is opened
+    ["f_order_id", "f_product", "f_customer", "f_original_ecd", "f_reason"].forEach(id => {
+      document.getElementById(id).value = "";
+    });
+    document.getElementById("f_severity").value = "medium";
+    document.getElementById("f_order_id").focus();
+  }
+}
+
+async function submitAnomalyReport() {
+  const order_id    = document.getElementById("f_order_id").value.trim();
+  const product     = document.getElementById("f_product").value.trim();
+  const customer    = document.getElementById("f_customer").value.trim();
+  const original_ecd = document.getElementById("f_original_ecd").value.trim();
+  const reason      = document.getElementById("f_reason").value.trim();
+  const severity    = document.getElementById("f_severity").value;
+
+  if (!order_id || !product || !customer || !original_ecd || !reason) {
+    appendMsg("❌ 請填寫所有必填欄位（標 * 為必填）", "msg-error");
+    return;
+  }
+
+  toggleAnomalyForm();   // collapse form before showing confirm banner
+  await callIntent("command.report_anomaly",
+    {order_id, product, customer, original_ecd, reason, severity});
+}
+
+// 自由文字 → 自然語言查詢引擎（唯讀；所有部門都開放）
+let askInFlight = false;
+
+async function sendMsg() {
+  const input = document.getElementById("msgInput");
+  const text = input.value.trim();
+  if (!text || askInFlight) return;
+  input.value = "";
+  appendMsg(text, "msg-user");
+  const win = document.getElementById("chatWindow");
+  const pending = document.createElement("div");
+  pending.className = "msg msg-bot";
+  pending.textContent = "🔎 查詢中…（複雜問題可能需要一點時間）";
+  win.appendChild(pending);
+  win.scrollTop = win.scrollHeight;
+  askInFlight = true;
+  try {
+    const resp = await fetch(`/api/dept/${COLOR}/ask`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json", "X-CSRF-Token": CSRF_TOKEN},
+      body: JSON.stringify({question: text}),
+    });
+    const data = await resp.json();
+    if (data.error) {
+      pending.className = "msg msg-error";
+      pending.textContent = "❌ " + data.error;
+    } else {
+      pending.textContent = (data.result && data.result.text) || "（空回覆）";
+    }
+  } catch(e) {
+    pending.className = "msg msg-error";
+    pending.textContent = "❌ 連線失敗：" + e;
+  } finally {
+    askInFlight = false;
+    win.scrollTop = win.scrollHeight;
+  }
+}
+</script>
+{% endblock %}

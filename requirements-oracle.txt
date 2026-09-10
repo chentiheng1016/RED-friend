@@ -1,0 +1,4 @@
+# Optional Oracle read-only inventory / ETL bridge.
+# Keep outside requirements-core.txt so the normal RED runtime is not coupled
+# to Oracle connectivity.
+oracledb==4.0.2

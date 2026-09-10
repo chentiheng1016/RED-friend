@@ -1,0 +1,136 @@
+{
+  "task_name": "開發領用料建立 (領料、退料、開補)",
+  "video_summary": "示範在開發階段如何建立領料、退料與開補單據，並進行庫存銷帳。",
+  "erp_name": "FAST ERP",
+  "prerequisites": "已登入系統，並位於開發管理主介面。",
+  "menu_path": "主選單 → 開發管理 → 開發領用料建立",
+  "steps": [
+    {
+      "n": 1,
+      "action": "click",
+      "target_description": "功能頁面中的「建立」標籤頁",
+      "visual_cue": "領用項目建立標籤",
+      "why": "切換至新增單據的介面"
+    },
+    {
+      "n": 2,
+      "action": "click",
+      "target_description": "上方工具列的「插入」按鈕",
+      "visual_cue": "綠色加號圖示",
+      "why": "啟動一筆新的領用紀錄"
+    },
+    {
+      "n": 3,
+      "action": "select",
+      "target_description": "「異動日期」欄位",
+      "visual_cue": "紅色星號必填欄位",
+      "example_value": "2022/09/07",
+      "why": "指定領取材料的日期"
+    },
+    {
+      "n": 4,
+      "action": "select",
+      "target_description": "「異動倉庫」欄位，選擇領料的庫別",
+      "visual_cue": "紅色星號必填，下拉選單",
+      "example_value": "016 開發材料倉",
+      "why": "指定從哪個倉庫扣除材料"
+    },
+    {
+      "n": 5,
+      "action": "select",
+      "target_description": "「異動類別」與「單據類別」欄位",
+      "visual_cue": "類別選擇，例如 領料、退料、開補",
+      "example_value": "領料",
+      "why": "定義本次單據性質"
+    },
+    {
+      "n": 6,
+      "action": "click",
+      "target_description": "畫面中間的「選擇領用清單」按鈕",
+      "visual_cue": "按鈕文字：選擇領用清單",
+      "why": "開啟彈窗選擇要領料的樣品單據"
+    },
+    {
+      "n": 7,
+      "action": "fill",
+      "target_description": "領用清單彈窗中的查詢條件欄位",
+      "visual_cue": "樣品單號範圍欄位",
+      "example_value": "SFO2210001",
+      "why": "篩選出可領料的樣品單"
+    },
+    {
+      "n": 8,
+      "action": "click",
+      "target_description": "查詢出的單據核取方塊與「Ok」按鈕",
+      "visual_cue": "勾選清單",
+      "why": "將樣品單內的材料明細帶入主介面"
+    },
+    {
+      "n": 9,
+      "action": "fill",
+      "target_description": "材料明細列中的「實際領用」數量欄位",
+      "visual_cue": "黃色底色欄位",
+      "example_value": "12",
+      "why": "輸入真正從倉庫領出的數量"
+    },
+    {
+      "n": 10,
+      "action": "click",
+      "target_description": "介面右方的「複核」按鈕",
+      "visual_cue": "按鈕文字：複核(F)",
+      "why": "確認單據內容無誤，系統會檢查庫存是否足夠"
+    },
+    {
+      "n": 11,
+      "action": "click",
+      "target_description": "介面右方的「銷帳」按鈕",
+      "visual_cue": "按鈕文字：銷帳(P)",
+      "why": "正式執行扣帳，更新庫存數量"
+    }
+  ],
+  "fields_schema": {
+    "異動日期": {
+      "type": "date",
+      "required": true,
+      "example": "2022/09/07"
+    },
+    "異動倉庫": {
+      "type": "string",
+      "required": true,
+      "example": "016"
+    },
+    "異動類別": {
+      "type": "string",
+      "required": true,
+      "example": "領料/退料/開補"
+    },
+    "實際領用": {
+      "type": "number",
+      "required": true,
+      "example": "10",
+      "notes": "輸入實際異動的數量"
+    },
+    "開補原因": {
+      "type": "string",
+      "required": false,
+      "example": "01 樣品生產損耗",
+      "notes": "僅開補時必填"
+    }
+  },
+  "validation": "點擊銷帳後，到「開發材料庫存查詢」確認該材料的出庫數量已增加，庫存餘額正確扣除。",
+  "common_pitfalls": [
+    "若單據已出貨或結案，將無法在領用清單中查詢到該單。",
+    "當庫存數為 0 時，複核會提示錯誤且無法繼續操作。",
+    "退料時若該樣品單當初沒有領料紀錄，系統將不允許退料。",
+    "開補時若未輸入開補原因代碼，將無法存檔。"
+  ],
+  "narrator_tips": [
+    "領料務必在樣品單出貨之前完成。",
+    "一頁領用建立介面可同時處理領料、退料與開補，僅需變更「單據類別」。",
+    "只有執行「銷帳」動作，庫存餘額才會真正變動。",
+    "若材料是從量產倉調撥，應使用「開發調撥轉單建立」功能而非領料建立。"
+  ],
+  "_video_name": "9.7開發領退料.mp4",
+  "_video_path": "開發部教學",
+  "_video_index": 5
+}

@@ -1,0 +1,118 @@
+{
+  "task_name": "樣品清單用料修改與版次管理",
+  "video_summary": "示範樣品單生效後的用料修改、料號顏色查詢及版次升級流程。",
+  "erp_name": "FAST ERP (Fu Chun Corporation / 佳竑資訊)",
+  "prerequisites": "已登入系統，並處於「樣品管理」模組的「樣品清單建立」畫面，且樣品單狀態為「生效」。",
+  "menu_path": "主選單 → 樣品管理 → 樣品清單建立",
+  "steps": [
+    {
+      "n": 1,
+      "action": "click",
+      "target_description": "工具列上的「用料修改 F4」按鈕",
+      "visual_cue": "文字標籤為「用料修改F4」，位於上方功能列中段",
+      "why": "樣品單在生效狀態下無法直接編輯，需點擊此按鈕開啟用料明細的修改權限。"
+    },
+    {
+      "n": 2,
+      "action": "fill",
+      "target_description": "用料明細表格中的「料號」欄位（連點兩下）",
+      "visual_cue": "表格標題「料號」，雙擊後會彈出查詢視窗",
+      "example_value": "PU",
+      "why": "更換該部位所使用的材料。"
+    },
+    {
+      "n": 3,
+      "action": "fill",
+      "target_description": "材料查詢視窗的「代碼名稱」輸入框",
+      "visual_cue": "視窗上方空白欄位，標籤為「代碼名稱」",
+      "example_value": "TPU",
+      "why": "輸入關鍵字以過濾所需的材料清單。"
+    },
+    {
+      "n": 4,
+      "action": "click",
+      "target_description": "材料查詢視窗的「執行查詢」按鈕",
+      "visual_cue": "視窗右上角按鈕",
+      "why": "執行搜尋動作。"
+    },
+    {
+      "n": 5,
+      "action": "select",
+      "target_description": "查詢結果清單中的材料（注意主材料與子材料）",
+      "visual_cue": "上半部為無顏色主材料，下半部為帶顏色的子材料（選取後會變黃色）",
+      "why": "從現有料庫中選擇正確的規格。若要帶入顏色，應選擇下半部的子材料。"
+    },
+    {
+      "n": 6,
+      "action": "fill",
+      "target_description": "「顏色的料號」欄位（連點兩下）",
+      "visual_cue": "表格中的「顏色的料號」欄位",
+      "why": "單獨調整該材料的顏色細項。"
+    },
+    {
+      "n": 7,
+      "action": "fill",
+      "target_description": "「廠商」欄位（連點兩下）",
+      "visual_cue": "表格中的「廠商」欄位",
+      "why": "指定材料的供應商。"
+    },
+    {
+      "n": 8,
+      "action": "fill",
+      "target_description": "「單位用量」欄位",
+      "visual_cue": "表格中的「單位用量」欄位",
+      "example_value": "1.25",
+      "why": "填寫開發階段計算出的材料單位消耗量。"
+    },
+    {
+      "n": 9,
+      "action": "click",
+      "target_description": "畫面右上方「版次升級」按鈕",
+      "visual_cue": "綠色底按鈕，位於「樣品清單建立」分頁右側",
+      "why": "當單據已執行過「轉彙總」或已下採購單後，必須透過版次升級才能再次修改資料並保留歷史記錄。"
+    },
+    {
+      "n": 10,
+      "action": "click",
+      "target_description": "工具列的「保存」按鈕",
+      "visual_cue": "磁碟片圖示",
+      "why": "儲存所有修改內容。"
+    }
+  ],
+  "fields_schema": {
+    "料號": {
+      "type": "string",
+      "required": true,
+      "notes": "雙擊開啟查詢視窗"
+    },
+    "顏色的料號": {
+      "type": "string",
+      "required": false,
+      "notes": "用於指定材料具體顏色編碼"
+    },
+    "廠商": {
+      "type": "string",
+      "required": false,
+      "notes": "雙擊選擇供應商"
+    },
+    "單位用量": {
+      "type": "number",
+      "required": true,
+      "notes": "由樣品開發人員根據紙版計算填入"
+    }
+  },
+  "validation": "存檔後，畫面上方的「版次」欄位數字應會跳號（例如從1變為2），且歷史版本資訊可於「樣品清單變更」分頁查詢。",
+  "common_pitfalls": [
+    "若在材料查詢視窗找不到材料，通常是因為該材料尚未在『開發料名建立』中新增或未生效。",
+    "新單狀態下無法使用『版次升級』按鈕。",
+    "如果已經回報完工，則修改處應改至『開發形體建立』而非樣品單。"
+  ],
+  "narrator_tips": [
+    "選取材料時，上半部清單是主料（不含顏色），下半部才是帶顏色的細項，若要精確修改應選下半部。",
+    "單位用量通常是參考 AS 或 F 檔案（紙版掃描）手動輸入，系統預設為 0。",
+    "若單據已轉採購，修改用量後需點擊『版次升級』以確保採購端的資料能同步更新。"
+  ],
+  "_video_name": "9.1樣品單變更流程與操作說明.mp4",
+  "_video_path": "開發部教學",
+  "_video_index": 3
+}

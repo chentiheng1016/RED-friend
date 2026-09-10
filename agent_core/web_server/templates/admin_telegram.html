@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Telegram 管理 — 小紅員工入口{% endblock %}
+{% block extra_style %}
+.topbar { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
+.topbar a { color:#888; font-size:.85rem; text-decoration:none; }
+.topbar a:hover { color:#c0392b; text-decoration:underline; }
+table { width:100%; border-collapse:collapse; }
+th, td { padding:10px 12px; text-align:left; border-bottom:1px solid #eee; vertical-align:top; }
+th { font-weight:600; color:#555; font-size:.85rem; background:#fafafa; }
+tr:hover td { background:#f9f9f9; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.82rem; }
+.muted { color:#777; font-size:.85rem; }
+.pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:.78rem; font-weight:600; background:#eee; color:#555; }
+.pill-ok { background:#e8f5e9; color:#2e7d32; }
+.pill-blocked, .pill-unauthorized { background:#ffebee; color:#b71c1c; }
+.pill-rate_limited { background:#fff3e0; color:#b85c00; }
+.pill-ignored_group_noise { background:#e3f2fd; color:#1565c0; }
+.pill-active { background:#e8f5e9; color:#2e7d32; }
+.pill-shadowed, .pill-invalid { background:#ffebee; color:#b71c1c; }
+.pill-inactive { background:#f5f5f5; color:#777; }
+.snippet { max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.path { background:#f7f7f7; border:1px solid #eee; padding:8px 10px; border-radius:6px; margin-bottom:12px; }
+.warn-list { margin:8px 0 0 18px; color:#9a3412; font-size:.9rem; }
+@media (max-width: 760px) {
+  .wide-table { display:block; overflow-x:auto; white-space:nowrap; }
+  .snippet { max-width:220px; }
+}
+{% endblock %}
+{% block content %}
+<div class="topbar">
+  <h2>Telegram 管理</h2>
+  <a href="/admin/employees" style="margin-left:auto;">員工管理</a>
+  <a href="/">返回總覽</a>
+</div>
+
+<div class="card">
+  <h3 style="margin-bottom:8px; font-size:1rem">綁定診斷</h3>
+  <p class="muted" style="margin-bottom:12px;">{{ binding_diagnostics.summary or "尚未偵測到授權 chat" }}</p>
+  {% if binding_diagnostics.warnings %}
+  <ul class="warn-list">
+    {% for warning in binding_diagnostics.warnings %}
+    <li>{{ warning }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if binding_diagnostics.bindings %}
+  <div class="wide-table" style="margin-top:12px;">
+    <table>
+      <thead>
+        <tr><th>狀態</th><th>Color</th><th>Chat ID</th><th>來源</th><th>標籤</th></tr>
+      </thead>
+      <tbody>
+        {% for row in binding_diagnostics.bindings %}
+        <tr>
+          <td><span class="pill pill-{{ row.status }}">{{ row.status }}</span></td>
+          <td>{{ row.color or "-" }}</td>
+          <td class="mono">{{ row.chat_id or "-" }}</td>
+          <td>{{ row.source or "-" }}</td>
+          <td>{{ row.label or row.name or row.email or "-" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted" style="padding:10px 0;">尚未設定 Telegram actor。</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h3 style="margin-bottom:12px; font-size:1rem">指令白名單</h3>
+  <div class="wide-table">
+    <table>
+      <thead>
+        <tr><th>Actor</th><th>允許指令</th><th>範圍</th><th>確認</th></tr>
+      </thead>
+      <tbody>
+        {% for row in policy_rows %}
+        <tr>
+          <td><span class="pill">{{ row.actor }}</span></td>
+          <td class="mono">{{ row.commands }}</td>
+          <td>{{ row.scope }}</td>
+          <td>{{ row.confirmation }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h3 style="margin-bottom:8px; font-size:1rem">最近 Telegram audit</h3>
+  <div class="path mono">{{ audit_path or "audit path unavailable" }}</div>
+  {% if audit_events %}
+  <div class="wide-table">
+    <table>
+      <thead>
+        <tr>
+          <th>時間</th><th>狀態</th><th>Actor</th><th>Command</th>
+          <th>Chat</th><th>From</th><th>訊息</th><th>回覆</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for event in audit_events %}
+        <tr>
+          <td class="mono">{{ event.logged_at or "-" }}</td>
+          <td><span class="pill pill-{{ event.status }}">{{ event.status or "-" }}</span></td>
+          <td>{{ event.actor_color or "-" }}<br><span class="muted">{{ event.actor_label or event.actor_source or "" }}</span></td>
+          <td class="mono">{{ event.command or "-" }}</td>
+          <td class="mono">{{ event.chat_id or "-" }}<br><span class="muted">{{ event.chat_type or "" }}</span></td>
+          <td class="mono">{{ event.from_id or "-" }}<br><span class="muted">{{ event.from_username or "" }}</span></td>
+          <td><div class="snippet" title="{{ event.text_preview }}">{{ event.text_preview or "-" }}</div></td>
+          <td><div class="snippet" title="{{ event.reply_preview }}">{{ event.reply_preview or event.reason or "-" }}</div></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted" style="padding:18px 0;">目前沒有 Telegram audit 紀錄。</p>
+  {% endif %}
+</div>
+{% endblock %}

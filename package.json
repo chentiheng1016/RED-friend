@@ -1,0 +1,36 @@
+{
+  "name": "red",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Node helper dependencies for RED browser automation and Puppeteer smoke checks.",
+  "scripts": {
+    "smoke:node": "node scripts/node/puppeteer_smoke.cjs",
+    "smoke:node:launch": "RED_NODE_BROWSER_SMOKE_LAUNCH=1 node scripts/node/puppeteer_smoke.cjs",
+    "test": "npm run smoke:node"
+  },
+  "engines": {
+    "node": ">=18",
+    "npm": ">=9"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chentiheng1016/RED.git"
+  },
+  "keywords": [
+    "red",
+    "puppeteer",
+    "browser-automation"
+  ],
+  "author": "",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/chentiheng1016/RED/issues"
+  },
+  "homepage": "https://github.com/chentiheng1016/RED#readme",
+  "dependencies": {
+    "puppeteer-core": "^25.5.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  }
+}

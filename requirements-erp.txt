@@ -1,0 +1,11 @@
+# 飛越 ERP Oracle 直讀 — 不需任何 pip 套件。
+#
+# DB 是 Oracle 10.2.0.5（10g），macOS 沒有能連 10g 的 Oracle client，
+# 所以查詢在 ERP 主機上用它自己的 10g sqlplus 執行，RED 走 SSH 呼叫
+# （見 agent_core/erp_oracle_client.py、docs/erp_db_readonly_design.md）。
+#
+# Runtime 需求（非 pip）：
+#   - RED 主機要有 ssh client（macOS/Linux 內建）
+#   - SSH 金鑰 ~/.ssh/id_erp_jhdb（RED_ERP_SSH_KEY 可覆寫）
+#   - ERP 主機要有可用的 sqlplus + tnsnames 別名 JHDB（飛越環境本來就有）
+#   - 啟用：RED_ERP_ORACLE_ENABLED=1

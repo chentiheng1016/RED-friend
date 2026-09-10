@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.xiaohong.erp_mirror_refresh</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>@@REPO_ROOT@@/.venv/bin/python</string>
+        <string>@@REPO_ROOT@@/launchd/scripts/erp_mirror_refresh.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>@@REPO_ROOT@@</string>
+
+    <!-- 每天 02:00 刷新營運熱表（~1-1.5h）。低用量時段，避開刷新期間 DuckDB 寫鎖影響小紅查詢。 -->
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict>
+            <key>Hour</key>
+            <integer>2</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+    </array>
+
+    <key>StandardOutPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-erp_mirror_refresh.log</string>
+    <key>StandardErrorPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-erp_mirror_refresh.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+        <!-- 熱表刷新要連 ERP 主機（SSH+10g sqlplus）。金鑰走預設 ~/.ssh/id_erp_jhdb。 -->
+        <key>RED_ERP_ORACLE_ENABLED</key>
+        <string>1</string>
+        <!-- 單表 SSH 斷線（exit 255）重試前的等待。內建預設 60s 不夠：重試機制上線後
+             的 2 次實例（都是 MK00.SF_TRANS_WK，最近一次 2026/08/15 03:13）等滿 60s
+             重連仍是同一個 exit 255，兩次都整表失敗、留舊資料；而單頭 SF_TRANS_HEADER
+             同輪刷成功 = 兩表版本不齊，v_production join 漏掉整個生產日。改 180s 收斂
+             比較長的斷線窗口；次數維持預設 1 次（RED_ERP_SSH_RETRY），最壞多花 3 分鐘，
+             離 7200s 看門狗還很遠。 -->
+        <key>RED_ERP_SSH_RETRY_WAIT_S</key>
+        <string>180</string>
+        <!-- 鏡像刷新後順跑 RDP 安全巡檢（agent_core/erp_security_patrol.py，同一條 SSH 通道
+             統計 Security 4625/4624）。可用的 env 旋鈕（不設就用預設）：
+               RED_ERP_SEC_AUDIT_ENABLED=0        關掉巡檢
+               RED_ERP_RDP_ALLOWED_IPS            4624 type10 白名單來源 IP（逗號分隔，加在
+                                                  內建 127.0.0.1/::1 之上；SSH tunnel 內的 RDP
+                                                  永遠放行）
+               RED_ERP_RDP_REAL_FAIL_WARN / _CRIT 真實帳號 24h 失敗次數門檻（預設 5 / 50）
+               RED_ERP_SEC_AUDIT_TIMEOUT_S        遠端統計 wall-clock 上限（預設 300） -->
+    </dict>
+
+    <!-- 純 calendar 觸發、不 RunAtLoad（bootstrap/redeploy 時不會立刻跑一輪 ~1h 刷新）。
+         無 KeepAlive：失敗不自動重啟，隔天 02:00 自然重試；倉在=舊資料仍可查、不至於斷。 -->
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>

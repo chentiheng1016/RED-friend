@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.xiaohong.training_video_watch</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>@@REPO_ROOT@@/.venv/bin/python</string>
+        <string>@@REPO_ROOT@@/launchd/scripts/training_video_watch.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>@@REPO_ROOT@@</string>
+
+    <!-- 每天 19:07 檢查教學資料夾（飛越erp使用教學）有沒有新影片，自動 deep 學習
+         →SOP＋知識卡→Telegram 通知。每輪最多 2 支（RED_TRAINING_WATCH_MAX_PER_RUN）、
+         超大檔跳過。刻意用 StartCalendarInterval（無 KeepAlive）— 不會因 redeploy
+         誤觸發。19:07 避開夜跑 rag_sync（01:00）與上班尖峰。 -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>19</integer>
+        <key>Minute</key>
+        <integer>7</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-training_video_watch.log</string>
+    <key>StandardErrorPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-training_video_watch.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- 走共用 chroma server + 768 維 collection（與 fleet 一致） -->
+        <key>RED_CHROMA_HTTP_URL</key>
+        <string>http://127.0.0.1:8000</string>
+        <key>RED_EMBED_DIM</key>
+        <string>768</string>
+        <!-- deep 學習品質旗標：本機 whisper.cpp 轉錄＋OCR gating（皆本機免費；
+             ASR 不可用會自動退回純雲端路徑） -->
+        <key>RED_VIDEO_LOCAL_ASR</key>
+        <string>1</string>
+        <key>RED_VIDEO_LOCAL_OCR_GATE</key>
+        <string>1</string>
+        <!-- 知識卡抽取用穩定 flash（deep 深析內部固定 gemini-2.5-pro 不受此影響） -->
+        <key>RED_GEMINI_MODEL</key>
+        <string>gemini-flash-latest</string>
+        <key>RED_GEMINI_FALLBACK_MODEL</key>
+        <string>gemini-2.5-flash-lite</string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+        <key>AGENT_DAEMON_MODE</key>
+        <string>1</string>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+    </dict>
+</dict>
+</plist>

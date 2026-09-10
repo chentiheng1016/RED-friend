@@ -1,0 +1,110 @@
+#!/usr/bin/env python3
+"""Inject RED_CHROMA_HTTP_URL into a plist's EnvironmentVariables dict
+while preserving the file's existing indentation, key order, and comments.
+
+Unlike `plutil -replace`, this is a textual surgical insert — we find the
+`<key>EnvironmentVariables</key>` followed by its `<dict>...</dict>`, and
+inject two new lines just before the closing `</dict>`. The indentation of
+the new lines is inferred from an existing inner key (so it matches whatever
+the file uses — 4 spaces, tab, whatever).
+
+Idempotent: if RED_CHROMA_HTTP_URL already present in that dict, no change.
+"""
+import re
+import sys
+from pathlib import Path
+
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+# 共用 server 位址的單一定義在 agent_core.chroma_backend（module-level 只有
+# stdlib import，系統 python3 也載得起）。bin/、scripts/、防護探測絕不能各帶
+# 一份 literal——port 改了只剩一處要動。
+from agent_core.chroma_backend import SHARED_SERVER_URL  # noqa: E402
+
+KEY = "RED_CHROMA_HTTP_URL"
+VAL = SHARED_SERVER_URL
+
+
+def inject(path: Path, dry_run: bool = False) -> str:
+    """Return one of: 'patched', 'already-set', 'no-env-block', 'no-change'."""
+    text = path.read_text()
+
+    # Find `<key>EnvironmentVariables</key>` and the next `<dict>` after it.
+    m = re.search(r"(<key>EnvironmentVariables</key>\s*\n[ \t]*<dict>\n)", text)
+    if not m:
+        return "no-env-block"
+
+    # Walk forward from the end of the opening `<dict>` line, counting nested
+    # dict depth, until we find the matching `</dict>`.
+    start = m.end()
+    depth = 1
+    i = start
+    close_line_start = -1
+    while i < len(text) and depth > 0:
+        # Match opening <dict> not on the same line (we already consumed
+        # the opener); skip self-closing <dict/> just in case.
+        next_open = text.find("<dict>", i)
+        next_close = text.find("</dict>", i)
+        if next_close == -1:
+            return "no-env-block"  # malformed
+        if next_open != -1 and next_open < next_close:
+            depth += 1
+            i = next_open + len("<dict>")
+        else:
+            depth -= 1
+            if depth == 0:
+                # Find the start of the line containing this </dict>
+                close_line_start = text.rfind("\n", 0, next_close) + 1
+                close_pos = next_close
+                break
+            i = next_close + len("</dict>")
+
+    if close_line_start < 0:
+        return "no-env-block"
+
+    env_block = text[start:close_line_start]
+
+    # Idempotency: already there?
+    if f"<key>{KEY}</key>" in env_block:
+        return "already-set"
+
+    # Infer inner indent from any existing `<key>` line in the env block.
+    inner_indent_match = re.search(r"^([ \t]+)<key>", env_block, re.MULTILINE)
+    if inner_indent_match:
+        inner = inner_indent_match.group(1)
+    else:
+        # Empty env dict — use closing dict's indent + 4 spaces
+        close_line = text[close_line_start:close_pos]
+        outer_indent = re.match(r"^[ \t]*", close_line).group(0)
+        inner = outer_indent + "    "
+
+    new_lines = f"{inner}<key>{KEY}</key>\n{inner}<string>{VAL}</string>\n"
+    patched = text[:close_line_start] + new_lines + text[close_line_start:]
+
+    if not dry_run:
+        path.write_text(patched)
+    return "patched"
+
+
+def main() -> int:
+    dry = "--dry-run" in sys.argv
+    paths = [Path(a) for a in sys.argv[1:] if not a.startswith("--")]
+    if not paths:
+        print("usage: inject_chroma_env.py [--dry-run] file1.plist [file2.plist ...]")
+        return 2
+
+    counts = {"patched": 0, "already-set": 0, "no-env-block": 0}
+    for p in paths:
+        status = inject(p, dry_run=dry)
+        counts[status] = counts.get(status, 0) + 1
+        tag = "DRY" if dry else "OK "
+        print(f"[{tag}] {status:14s} {p}")
+
+    print(f"\nSummary: patched={counts['patched']} already-set={counts['already-set']} no-env-block={counts['no-env-block']}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

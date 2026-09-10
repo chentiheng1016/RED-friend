@@ -1,0 +1,26 @@
+#!/bin/bash
+# RAG（Drive/Gmail/Chat）完成度報告 — terminal 一行命令看已索引 vs 來源總量。
+#
+# 用法：
+#   ./bin/red-rag-coverage        # Drive 逐部門 + Gmail + Chat 完成度
+#
+# 也可在 Telegram / REPL 內呼叫 `rag_coverage_report()` tool 拿同樣輸出。
+#
+# 注意：會即時打 Drive API 逐部門分頁列舉檔案，兩三萬檔的大部門可能要數十秒
+# ——偶爾深查用，不要塞進高頻輪詢或排程。
+
+set -e
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+REPO_ROOT="$( dirname "$SCRIPT_DIR" )"
+
+PYBIN="$REPO_ROOT/.venv/bin/python"
+if [ ! -x "$PYBIN" ]; then
+    echo "❌ 找不到 $PYBIN — 請先跑 setup.sh 建 venv"
+    exit 1
+fi
+
+cd "$REPO_ROOT"
+exec "$PYBIN" -c "
+from agent_core.rag_coverage import rag_coverage_report
+print(rag_coverage_report())
+"

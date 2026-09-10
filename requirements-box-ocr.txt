@@ -1,0 +1,25 @@
+# 外箱嘜頭 OCR 專用 venv（var/venvs/box_ocr）的依賴 — 用 bin/setup-box-ocr 安裝。
+#
+# deps-check: separate-venv=box_ocr
+#   ↑ 這行是給 agent_core/deps_check 讀的，`=` 後面是 venv 名（＝
+#     RUNTIME_ROOT/venvs/box_ocr）。它有兩個作用：
+#       1. 本檔釘的版本**不拿去跟主 .venv 比**。實例：本檔釘 onnxruntime==1.28.0，
+#          而主 venv 也有 onnxruntime（chromadb 的傳遞依賴）——兩者無關，硬比會
+#          天天報「venv 與 requirements 不符」，照它建議 pip install 還會動到
+#          chromadb 解出來的版本。
+#       2. 改成去問 var/venvs/box_ocr 那個直譯器裝了什麼，拿**對的清單比對的
+#          環境**。不然這份檔沒有任何自動流程會看（Dependabot 07-31 bump 了
+#          onnxruntime，venv 停在舊版兩週沒人發現）。漂移時的修法＝
+#          ./bin/setup-box-ocr。
+#
+# ⚠️ 刻意獨立於主 .venv：paddlex 會（1）把 numpy 降到 <2.4、（2）拉
+# opencv-contrib-python 跟主 venv 的 opencv-python-headless 互踩（兩個都提供
+# cv2）。裝進共用 venv 會動搖全艦隊地基，所以隔離在專用 venv、skill 用
+# subprocess 呼叫（scripts/box_ocr_runner.py）。
+#
+# 不列入 Makefile MAIN_REQ_FILES 的 pip-audit：這是選配的本機推論引擎，
+# paddle 生態的上游 CVE 不該紅掉所有 PR；要掃可手動
+#   .venv/bin/pip-audit -r requirements-box-ocr.txt
+paddleocr==3.7.0
+paddlex==3.7.2
+onnxruntime==1.28.0

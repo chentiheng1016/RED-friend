@@ -1,0 +1,127 @@
+{
+  "task_name": "開發樣品編號建立 - 加工物料清單設定",
+  "video_summary": "在開發樣品編號建立視窗中，設定加工代碼、選取加工物料並填寫加工明細內容。",
+  "erp_name": "Oracle Forms Services",
+  "prerequisites": "已進入「開發樣品編號建立」功能視窗，且基本資料已存在，準備進入「加工物料清單」分頁。",
+  "menu_path": "開發管理 → 樣品管理 → 開發樣品編號建立",
+  "steps": [
+    {
+      "n": 1,
+      "action": "click",
+      "target_description": "中間分頁標籤中的「加工物料清單」",
+      "visual_cue": "文字標籤「加工物料清單」",
+      "example_value": null,
+      "why": "切換至加工物料的設定頁面"
+    },
+    {
+      "n": 2,
+      "action": "click",
+      "target_description": "左上角「加工代碼」欄位旁的開窗按鈕",
+      "visual_cue": "欄位標籤「加工代碼」，右側有開窗圖示",
+      "example_value": null,
+      "why": "開啟加工代碼清單進行選擇"
+    },
+    {
+      "n": 3,
+      "action": "select",
+      "target_description": "加工代碼查詢視窗中的選項",
+      "visual_cue": "彈出視窗清單",
+      "example_value": "1.外包加工",
+      "why": "指定此樣品的加工方式為外包加工"
+    },
+    {
+      "n": 4,
+      "action": "click",
+      "target_description": "下方明細表格中「物料代碼」的第一列欄位",
+      "visual_cue": "表格標題為「物料代碼」的空白格",
+      "example_value": null,
+      "why": "準備輸入或選取加工所需的物料"
+    },
+    {
+      "n": 5,
+      "action": "click",
+      "target_description": "物料代碼欄位的開窗按鈕",
+      "visual_cue": "點擊後出現的開窗圖示",
+      "example_value": null,
+      "why": "開啟物料清單查詢視窗"
+    },
+    {
+      "n": 6,
+      "action": "fill",
+      "target_description": "物料查詢視窗的搜尋欄位",
+      "visual_cue": "彈出視窗頂部的輸入框",
+      "example_value": "ED202206230002",
+      "why": "過濾並尋找特定的加工物料"
+    },
+    {
+      "n": 7,
+      "action": "select",
+      "target_description": "查詢結果中的物料列並點擊「確定」",
+      "visual_cue": "搜尋結果清單",
+      "example_value": "ED202206230002-B230",
+      "why": "確認選取該物料帶回明細表"
+    },
+    {
+      "n": 8,
+      "action": "click",
+      "target_description": "右側「加工廠」欄位",
+      "visual_cue": "標籤「加工廠」下方的空白欄位",
+      "example_value": null,
+      "why": "準備選擇負責加工的工廠"
+    },
+    {
+      "n": 9,
+      "action": "select",
+      "target_description": "加工廠選取視窗的選項",
+      "visual_cue": "彈出的小視窗清單",
+      "example_value": "A001 龍帝",
+      "why": "指定加工廠商"
+    },
+    {
+      "n": 10,
+      "action": "click",
+      "target_description": "下方「確認存檔」按鈕",
+      "visual_cue": "畫面底部的「確認存檔」按鈕",
+      "example_value": null,
+      "why": "儲存目前設定的加工物料資訊"
+    }
+  ],
+  "fields_schema": {
+    "加工代碼": {
+      "type": "string",
+      "required": true,
+      "example": "1",
+      "notes": "通常代表加工類別"
+    },
+    "物料代碼": {
+      "type": "string",
+      "required": true,
+      "example": "ED202206230002-B230",
+      "notes": "明細表格中的首要欄位"
+    },
+    "加工廠": {
+      "type": "string",
+      "required": true,
+      "example": "A001",
+      "notes": "由開窗選單選取"
+    },
+    "加工項目": {
+      "type": "string",
+      "required": false,
+      "example": "上網布",
+      "notes": "描述加工的具體內容"
+    }
+  },
+  "validation": "點擊確認存檔後，系統應彈出「訊息：資料存檔成功」的對話框。",
+  "common_pitfalls": [
+    "若未先選取「加工代碼」即嘗試填寫下方明細，系統可能會報錯或不允許操作。",
+    "物料搜尋時若關鍵字不正確會查無資料。"
+  ],
+  "narrator_tips": [
+    "選取物料時，建議利用查詢視窗的過濾功能縮小範圍。",
+    "注意加工明細中的加工廠與加工項目為必填或關鍵資訊，需準確選取。"
+  ],
+  "_video_name": "230616多站加工建立.mp4",
+  "_video_path": "開發部教學",
+  "_video_index": 1
+}

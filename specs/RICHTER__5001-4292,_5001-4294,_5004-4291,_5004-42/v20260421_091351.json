@@ -1,0 +1,57 @@
+{
+  "customer": "RICHTER",
+  "product_model": "5001-4292, 5001-4294, 5004-4291, 5004-4292, 5001-4692, 5001-4693, 5001-4691, 5001-4694, 5004-4691, 5004-4692, 5006-4691, 5006-4692, 5008-4292",
+  "document_date": "2026-03-13",
+  "document_version": "",
+  "specs": {
+    "upper": {
+      "material": "Pu / Textile",
+      "components": "LED (for models 5004-4691, 5004-4692)"
+    },
+    "outsole": {
+      "material": "pu/tpu"
+    },
+    "midsole": null,
+    "lining": {
+      "material": "sympatex / richtex"
+    },
+    "insole": null,
+    "laces": null,
+    "eyelets": null,
+    "sizing": {
+      "range": "25-38",
+      "grading_groups": [
+        "25-30",
+        "31-35",
+        "36-38"
+      ]
+    },
+    "packaging": {
+      "type": "500P BOX PACKING"
+    },
+    "labeling": null,
+    "performance_requirements": null,
+    "quality_standards": null
+  },
+  "tolerances": {
+    "color_delta_E": null,
+    "hardness": null
+  },
+  "critical_notes": [
+    "Small shipment cost USD 100 charged for shipment Q'TY under 3,000 PRS",
+    "Price does not include mold fee",
+    "Min order 3000 pairs/style, 1500 pair/color combination",
+    "Payment: TT after on board date, upon payment settlement, original documents will be post to you via express"
+  ],
+  "extra": {
+    "trade_term": "FOB HCM CITY",
+    "manufacturer": "JAI FUNG CORPORATION",
+    "price_range_usd": {
+      "min": 15.3,
+      "max": 20.9
+    },
+    "currency": "USD"
+  },
+  "parsed_at": "2026-04-21T09:13:51",
+  "source_file": "/Users/user/Downloads/03-25 new Richter_2026ws_quotation.pdf"
+}

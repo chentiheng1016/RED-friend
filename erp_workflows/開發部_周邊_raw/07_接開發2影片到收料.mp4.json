@@ -1,0 +1,136 @@
+{
+  "task_name": "開發調料匯總、加工單與採購管理",
+  "video_summary": "操作調料需求匯總、建立非庫存加工單、手工採購單及交期預排。",
+  "erp_name": "FAST ERP",
+  "prerequisites": "已登入系統，且開發管理模組已有待處理的樣品需求資料。",
+  "menu_path": "主畫面 → 開發管理 → 相關子功能 (如調料需求匯總、非庫存調料加工單等)",
+  "steps": [
+    {
+      "n": 1,
+      "action": "click",
+      "target_description": "中間流程圖中的「調料需求匯總」按鈕",
+      "visual_cue": "調料需求匯總",
+      "why": "進入需求匯總介面處理待調料項目"
+    },
+    {
+      "n": 2,
+      "action": "fill",
+      "target_description": "列表中的「調料數」欄位",
+      "visual_cue": "調料數 (紅色標記區)",
+      "example_value": "10",
+      "why": "輸入欲申請調料的數量，若為0則無法勾選產生單據"
+    },
+    {
+      "n": 3,
+      "action": "click",
+      "target_description": "畫面右側的「產生調料單」按鈕",
+      "visual_cue": "產生調料單",
+      "why": "將勾選的需求轉化為正式的調料申請單"
+    },
+    {
+      "n": 4,
+      "action": "click",
+      "target_description": "上方工具列的「補料品編碼(F)」按鈕",
+      "visual_cue": "補料品編碼(F)",
+      "why": "針對沒有正式料號的非庫存材料，在加工單中進行料號對照補齊"
+    },
+    {
+      "n": 5,
+      "action": "select",
+      "target_description": "補料品編碼視窗中的「New Data」欄位",
+      "visual_cue": "New Data / 開窗選擇",
+      "why": "選擇對應的正式有料號材料"
+    },
+    {
+      "n": 6,
+      "action": "click",
+      "target_description": "畫面左上角的「插入記錄」圖示",
+      "visual_cue": "綠色加號圖示",
+      "why": "手動新增一筆加工單或採購單記錄"
+    },
+    {
+      "n": 7,
+      "action": "click",
+      "target_description": "加工單畫面左側的「調樣品單」按鈕",
+      "visual_cue": "調樣品單",
+      "why": "從現有的樣品單中匯入需要加工的材料資料"
+    },
+    {
+      "n": 8,
+      "action": "fill",
+      "target_description": "加工單下方的「加工單價」欄位",
+      "visual_cue": "加工單價",
+      "example_value": "3",
+      "why": "維護加工費單價"
+    },
+    {
+      "n": 9,
+      "action": "click",
+      "target_description": "上方工具列的「生效(Y)」按鈕",
+      "visual_cue": "生效(Y)",
+      "why": "確認單據內容無誤並正式發布，生效後不可修改"
+    },
+    {
+      "n": 10,
+      "action": "click",
+      "target_description": "主流程圖中的「手工開採購單」按鈕",
+      "visual_cue": "手工開採購單",
+      "why": "進入手動建立採購單功能"
+    },
+    {
+      "n": 11,
+      "action": "click",
+      "target_description": "採購單畫面中的「調料單」按鈕",
+      "visual_cue": "調料單",
+      "why": "選取先前產生的調料申請單來建立採購明細"
+    },
+    {
+      "n": 12,
+      "action": "fill",
+      "target_description": "「開發調料交期預排」畫面下方的「預排日期」與「廠商回覆日」",
+      "visual_cue": "預排日期 / 廠商回覆日",
+      "example_value": "2022-04-10",
+      "why": "記錄廠商承諾的交期資訊供後續追蹤"
+    }
+  ],
+  "fields_schema": {
+    "調料數": {
+      "type": "number",
+      "required": true,
+      "example": "10"
+    },
+    "需求日期": {
+      "type": "date",
+      "required": true,
+      "example": "2022-03-25"
+    },
+    "廠商代號": {
+      "type": "string",
+      "required": true,
+      "example": "C0301"
+    },
+    "預排日期": {
+      "type": "date",
+      "required": false,
+      "example": "2022-04-04"
+    },
+    "加工單價": {
+      "type": "number",
+      "required": false,
+      "example": "3"
+    }
+  },
+  "validation": "單據狀態顯示為「已生效」，或在交期預排介面查詢時可看到已儲存的預排日期。",
+  "common_pitfalls": [
+    "若調料數未輸入或為0，將無法勾選項目產生單據。",
+    "非庫存材料若無料號，產生單據後會進入「非庫存調料加工單」而非一般的採購單。"
+  ],
+  "narrator_tips": [
+    "如果樣品單事後有修改用量，必須回到樣品單執行「樣品用量確認」，才能將變動更新到調料需求匯總表。",
+    "加工材料若設定為「掉支料」，在需求匯總會直接顯示加工前的原始材料明細。",
+    "生效後的單據如需修改，需進行撤銷動作（若權限允許）。"
+  ],
+  "_video_name": "接開發2影片到收料.mp4",
+  "_video_path": "開發部教學",
+  "_video_index": 7
+}

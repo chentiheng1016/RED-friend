@@ -1,0 +1,102 @@
+{
+  "task_name": "樣品單建立、試板單產生與BOM明細維護",
+  "video_summary": "示範樣品單建立、試板工作單產生、試板確認與樣品單BOM用量維護。",
+  "erp_name": "FAST ERP",
+  "prerequisites": "已登入系統並具有開發部權限",
+  "menu_path": "主選單 → 開發管理 → 樣品單建立 / 試板單建立 / 試板單確認",
+  "steps": [
+    {
+      "n": 1,
+      "action": "fill",
+      "target_description": "樣品單建立畫面中紅色字體的「開發小組」欄位",
+      "visual_cue": "紅色文字標籤「*開發小組」",
+      "example_value": "C2",
+      "why": "紅色為必填欄位，不填寫將無法執行儲存動作"
+    },
+    {
+      "n": 2,
+      "action": "click",
+      "target_description": "畫面正上方工具列中的「存檔」圖示",
+      "visual_cue": "磁碟片圖示",
+      "why": "儲存數據並生成正式的樣品單號"
+    },
+    {
+      "n": 3,
+      "action": "click",
+      "target_description": "畫面中部的「產生試板工作單」按鈕",
+      "visual_cue": "灰色按鈕，文字為「產生試板工作單」",
+      "why": "根據樣品單資訊自動生成對應的試板工作單"
+    },
+    {
+      "n": 4,
+      "action": "select",
+      "target_description": "試板單建立畫面中的「試板單單號」查詢下拉框",
+      "visual_cue": "標籤「試板單單號」後的輸入框與開窗按鈕",
+      "example_value": "SP23030017",
+      "why": "定位到剛生成的試板單以進行後續維護"
+    },
+    {
+      "n": 5,
+      "action": "fill",
+      "target_description": "試板單建立下方的「用量維護」分頁中的單位用量欄位",
+      "visual_cue": "藍色背景表格列，標題為「用量」",
+      "example_value": "12.3",
+      "why": "填寫各項材料在樣品製作時的實際單位用量"
+    },
+    {
+      "n": 6,
+      "action": "click",
+      "target_description": "加工材料列旁邊的「子材料」按鈕",
+      "visual_cue": "藍色小方框按鈕",
+      "why": "針對複合材料（如網布貼合泡棉）定義其內部組成的子材料"
+    },
+    {
+      "n": 7,
+      "action": "select",
+      "target_description": "試板單確認畫面中的「確認狀態」欄位",
+      "visual_cue": "下拉選單，選項包含 PASS, NG",
+      "example_value": "NG",
+      "why": "記錄測試結果，若選擇NG可觸發產生下一版試板（自動後綴 -A）"
+    },
+    {
+      "n": 8,
+      "action": "click",
+      "target_description": "樣品單明細建立畫面右側的「產生其他型體BOM」按鈕",
+      "visual_cue": "灰色長方形按鈕",
+      "why": "將目前配色已維護好的BOM結構快速複製到其他配色，減少重複輸入"
+    }
+  ],
+  "fields_schema": {
+    "開發小組": {
+      "type": "string",
+      "required": true,
+      "example": "C1",
+      "notes": "紅色字體必填"
+    },
+    "單位用量": {
+      "type": "number",
+      "required": true,
+      "example": "0.5",
+      "notes": "用於計算總需求量"
+    },
+    "確認狀態": {
+      "type": "enum",
+      "required": true,
+      "example": "PASS",
+      "notes": "決定該試板是否通過開發驗收"
+    }
+  },
+  "validation": "儲存時系統跳出「數據保存成功」提示訊息，且單據狀態由「新單」變更為「生效」。",
+  "common_pitfalls": [
+    "遺漏紅色必填欄位導致存檔失敗",
+    "多人同時修改同一筆樣品單編號，系統會提示資料被鎖定無法存檔"
+  ],
+  "narrator_tips": [
+    "紅色字體代表必填項，黑色字體代表選填項",
+    "欄位後方有三個點的圖示代表可以點擊開窗選擇資料",
+    "若試板確認為NG，系統可自動產生帶有-A後綴的新單據供重新測試"
+  ],
+  "_video_name": "開發2.mp4 (第 2/3 段)",
+  "_split_part": 2,
+  "_total_parts": 3
+}

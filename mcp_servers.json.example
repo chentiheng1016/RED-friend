@@ -1,0 +1,57 @@
+{
+  "_comment": "MCP (Model Context Protocol) server config. 複製成 mcp_servers.json 再編輯。/_/底線開頭的 key 是註解會被忽略。",
+  "_comment2": "每個 server 啟動時會被 mcp_bridge.py 連上 → list_tools → 掛成 Gemini tool。",
+  "_comment3": "小紅能用的 tool 名稱是 mcp_<server_name>_<tool_name>（自動 sanitize）。",
+
+  "filesystem": {
+    "_comment": "官方 MCP server，給 AI 安全的 read/write/edit/search 檔案。",
+    "_comment_args": "args 第三個起是允許存取的路徑白名單；路徑以外的檔案讀寫會被拒。",
+    "command": "npx",
+    "args": [
+      "-y",
+      "@modelcontextprotocol/server-filesystem",
+      "/Users/user/RED",
+      "/Users/user/Downloads"
+    ]
+  },
+
+  "fetch": {
+    "_comment": "官方 MCP server，把網頁抓下來轉成 Markdown（比 browser_read 輕量）。",
+    "command": "uvx",
+    "args": ["mcp-server-fetch"]
+  },
+
+  "_github_example": {
+    "_comment": "（可選）GitHub: issues/PR/repo 操作。需 Personal Access Token。",
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-github"],
+    "env": {
+      "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxxxxxxxxxxxxxxx"
+    }
+  },
+
+  "_slack_example": {
+    "_comment": "（可選）Slack 推訊息、讀頻道。",
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-slack"],
+    "env": {
+      "SLACK_BOT_TOKEN": "xoxb-xxxxxxxxxxxxxx",
+      "SLACK_TEAM_ID": "Txxxxxxxx"
+    }
+  },
+
+  "_postgres_example": {
+    "_comment": "（可選）PostgreSQL 直接查，read-only。",
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-postgres", "postgresql://user:pass@host:5432/db"]
+  },
+
+  "_notion_example": {
+    "_comment": "（可選）Notion page 建立/讀取。",
+    "command": "npx",
+    "args": ["-y", "@notionhq/notion-mcp-server"],
+    "env": {
+      "OPENAPI_MCP_HEADERS": "{\"Authorization\": \"Bearer ntn_xxxxx\", \"Notion-Version\": \"2022-06-28\"}"
+    }
+  }
+}

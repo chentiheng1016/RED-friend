@@ -1,0 +1,122 @@
+{
+  "task_name": "樣品單查詢、用量維護與開發料品編碼管理",
+  "video_summary": "演示樣品單查詢、細項用量填寫、材料類別選擇及料品編碼基本操作。",
+  "erp_name": "FAST ERP (Oracle Forms)",
+  "prerequisites": "用戶已登入系統並開啟 AnyDesk 遠端連線，處於 navigator 導航選單。 ",
+  "menu_path": "導航選單 → 開發管理 → 樣品單建立",
+  "steps": [
+    {
+      "n": 1,
+      "action": "click",
+      "target_description": "導航視窗中的『開發管理』資料夾下的『樣品單建立』功能",
+      "visual_cue": "文字標籤『樣品單建立』",
+      "why": "進入樣品單維護主介面"
+    },
+    {
+      "n": 2,
+      "action": "click",
+      "target_description": "頂部工具列的望遠鏡/手電筒圖示",
+      "visual_cue": "Flashlight icon (Query)",
+      "why": "開啟查詢模式"
+    },
+    {
+      "n": 3,
+      "action": "fill",
+      "target_description": "查詢視窗中的『型體』輸入框",
+      "visual_cue": "型體 label 旁的空白欄位",
+      "example_value": "F1959",
+      "why": "指定要查詢的鞋款型體"
+    },
+    {
+      "n": 4,
+      "action": "click",
+      "target_description": "分頁標籤中的第三個分頁『樣品單明細』",
+      "visual_cue": "樣品單明細 文字標籤",
+      "why": "進入材料細項與用量編輯頁面"
+    },
+    {
+      "n": 5,
+      "action": "fill",
+      "target_description": "明細列表中的『用量』欄位格",
+      "visual_cue": "用量 標題下的表格儲存格",
+      "example_value": "90",
+      "why": "輸入該部位材料的單位用量"
+    },
+    {
+      "n": 6,
+      "action": "select",
+      "target_description": "明細列表中的『調料類別』下拉選單",
+      "visual_cue": "調料類別 標題下的選單",
+      "example_value": "調本料",
+      "why": "設定材料的採購歸類性質"
+    },
+    {
+      "n": 7,
+      "action": "click",
+      "target_description": "頂部工具列的磁碟片圖示",
+      "visual_cue": "Floppy disk icon (Save)",
+      "why": "儲存剛才修改的用量與類別資訊"
+    },
+    {
+      "n": 8,
+      "action": "click",
+      "target_description": "主選單中的『開發料品編碼建立』功能",
+      "visual_cue": "開發料品編碼建立 文字按鈕",
+      "why": "進入原材料編碼的基本資料管理"
+    },
+    {
+      "n": 9,
+      "action": "fill",
+      "target_description": "料品編碼建立視窗中的『本地文1名稱』與『英文名稱』欄位",
+      "visual_cue": "標註紅色星號的名稱欄位",
+      "example_value": "本地文1：[越南文], 英文名稱：BLACK",
+      "why": "維護材料的多語系顯示名稱以便後續報表產出"
+    }
+  ],
+  "fields_schema": {
+    "型體": {
+      "type": "string",
+      "required": true,
+      "example": "F1959",
+      "notes": "鞋款編號"
+    },
+    "用量": {
+      "type": "number",
+      "required": true,
+      "example": "90.0000",
+      "notes": "精確到小數點後四位"
+    },
+    "調料類別": {
+      "type": "string",
+      "required": true,
+      "example": "調本料",
+      "notes": "區分原材料與加工材料"
+    },
+    "本地文1名稱": {
+      "type": "string",
+      "required": true,
+      "example": "vải gia cố",
+      "notes": "越南文名稱"
+    },
+    "英文名稱": {
+      "type": "string",
+      "required": true,
+      "example": "REINFORCED FABRIC",
+      "notes": "英文名稱"
+    }
+  },
+  "validation": "點擊儲存後，畫面左下角應顯示『資料儲存完成』且未彈出錯誤視窗。",
+  "common_pitfalls": [
+    "未執行查詢(Query)即開始修改可能導致資料不連貫",
+    "用量欄位如果沒儲存就切換分頁，資料會遺失",
+    "調料類別漏選會導致後續採購流程異常"
+  ],
+  "narrator_tips": [
+    "用量必須根據特定 Sample Size (如 Size 38) 來計算與輸入",
+    "越南端開發人員主要負責單位用量的維護",
+    "名稱維護應包含越南文與英文，以利後續全球化報表印製"
+  ],
+  "_video_name": "8.15樣單補用量&加工材料建立.mp4",
+  "_video_path": "開發部教學",
+  "_video_index": 1
+}

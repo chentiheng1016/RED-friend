@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.xiaohong.reflection</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>@@REPO_ROOT@@/.venv/bin/python</string>
+        <string>@@REPO_ROOT@@/launchd/scripts/reflection.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>@@REPO_ROOT@@</string>
+
+    <!-- 每天 21:30：rag 夜跑 03:00 起、單輪 7-15h 最晚 ~18:00 收尾，錯開；
+         真撞到時 run_daily_reflection 會探測 rag_sync.lock 自行跳過 -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>21</integer>
+        <key>Minute</key>
+        <integer>30</integer>
+    </dict>
+
+    <!-- load 時不自動跑（但 KeepAlive.SuccessfulExit 隱含 RunAtLoad——
+         由 reflection.py 的「今天已成功跑過就跳過」state 守門擋 redeploy 誤觸發） -->
+    <key>RunAtLoad</key>
+    <false/>
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+    <key>ThrottleInterval</key>
+    <integer>1800</integer>
+
+    <key>StandardOutPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-reflection.log</string>
+    <key>StandardErrorPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-reflection.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- 走共用 chroma server，勿開 embedded PersistentClient（會與 server 搶同一份 HNSW 索引→SIGSEGV） -->
+        <key>RED_CHROMA_HTTP_URL</key>
+        <string>http://127.0.0.1:8000</string>
+        <!-- ⚠️ 全艦隊 embedding 是 768 維（chroma 3072→768 遷移後）。css 部署
+             分支的 embedding_config 未設此值時預設 3072（rollback 安全網）——
+             漏掉這行，反思庫的寫入/查詢會跟其他 collection 維度打架、整體
+             靜默空轉。所有會碰 chroma 的 daemon plist 都必須帶這行。 -->
+        <key>RED_EMBED_DIM</key>
+        <string>768</string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+        <key>AGENT_DAEMON_MODE</key>
+        <string>1</string>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+    </dict>
+</dict>
+</plist>

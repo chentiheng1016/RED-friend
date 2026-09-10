@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.xiaohong.web_server</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>@@REPO_ROOT@@/.venv/bin/python</string>
+        <string>@@REPO_ROOT@@/launchd/scripts/web_server.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>@@REPO_ROOT@@</string>
+
+    <!-- 開機自動啟動，crash 後自動重啟 -->
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-web_server.log</string>
+    <key>StandardErrorPath</key>
+    <string>@@REPO_ROOT@@/var/logs/daemon-web_server.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- 走共用 chroma server，勿開 embedded PersistentClient(會與 server 搶同一份 HNSW 索引→SIGSEGV) -->
+        <key>RED_CHROMA_HTTP_URL</key>
+        <string>http://127.0.0.1:8000</string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>LANG</key>
+        <string>en_US.UTF-8</string>
+        <key>AGENT_DAEMON_MODE</key>
+        <string>1</string>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+        <key>BOSS_EMAILS</key>
+        <string>owner@company.example</string>
+        <key>RED_TELEGRAM_BOT_USERNAME</key>
+        <string>example_red_bot</string>
+        <!-- OAUTH_REDIRECT_BASE: optional override for the OAuth callback base.
+             LEAVE EMPTY in normal deployment — cloudflare_tunnel.py writes the
+             current public URL (Named Tunnel hostname OR Quick Tunnel URL) to
+             var/data/tunnel_url.txt and app.py reads from there as the source
+             of truth.
+
+             Why empty by default: hardcoding the Named Tunnel domain here
+             makes app.py keep redirecting to it even when the keyring token is
+             missing and cloudflared has fallen back to Quick Tunnel — OAuth
+             stays broken instead of degrading gracefully (Codex review on
+             PR #33). Only set this when you have a stable upstream that
+             bypasses cloudflared entirely (custom reverse proxy + DNS pointing
+             at this host). -->
+        <key>OAUTH_REDIRECT_BASE</key>
+        <string></string>
+        <!-- WEB_HTTPS_ONLY: 1 = Secure flag on session cookies (required for HTTPS).
+             Set to 0 only for local HTTP development. -->
+        <key>WEB_HTTPS_ONLY</key>
+        <string>1</string>
+        <key>RED_EMBED_DIM</key>
+        <string>768</string>
+            <!-- 員工自然語言查詢的語意搜尋（RAG + search_emails/search_docs）。
+             1=開；依賴 chroma post-filter(PR#292) 讓 ACL filtered 查詢 <0.5s。 -->
+        <key>RED_EMPLOYEE_NLP_SEMANTIC_SEARCH</key>
+        <string>1</string>
+</dict>
+</dict>
+</plist>

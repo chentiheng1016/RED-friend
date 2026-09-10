@@ -1,0 +1,44 @@
+#!/bin/bash
+# 建共用 embedding server 的獨立 venv（var/venvs/embed）。
+#
+# 為什麼獨立：torch / sentence-transformers 是重依賴，鐵則不裝主 .venv
+# （CLAUDE.md）。版本釘死在 2026-08 影子評測驗過的組合（M5 MPS fp16
+# 33.6 docs/s）；要升版先在 worktree 重跑 scratchpad 評測腳本再改這裡。
+#
+# 冪等：venv 已存在時只補裝缺的套件。跑完會 warmup 一次（下載模型檔到
+# ~/.cache/huggingface、驗 MPS 可用），所以首跑要能連網、需時數分鐘。
+set -euo pipefail
+
+REPO="$(cd "$(dirname "$0")/.." && pwd)"
+VENV="${REPO}/var/venvs/embed"
+PYBIN="${RED_EMBED_VENV_PYTHON:-python3.12}"
+
+if ! command -v "${PYBIN}" >/dev/null 2>&1; then
+  echo "找不到 ${PYBIN}（可用 RED_EMBED_VENV_PYTHON 指定），主 venv 是 3.12、對齊它" >&2
+  exit 1
+fi
+
+mkdir -p "${REPO}/var/venvs"
+if [ ! -x "${VENV}/bin/python" ]; then
+  echo "[embed-server-venv] 建立 venv：${VENV}"
+  "${PYBIN}" -m venv "${VENV}"
+fi
+
+echo "[embed-server-venv] 安裝依賴（釘版）"
+"${VENV}/bin/pip" install --quiet --upgrade pip
+"${VENV}/bin/pip" install --quiet \
+  "torch==2.8.0" \
+  "sentence-transformers==5.1.2" \
+  "numpy>=2,<3"
+
+echo "[embed-server-venv] warmup：載入 bge-m3 並嵌一句（首跑會下載 ~2.3GB 模型檔）"
+cd "${REPO}"
+"${VENV}/bin/python" - <<'PY'
+import agent_core.embed_server as es
+es._load_model()
+vec = es._encode(["warmup 測試句"], "document")
+print(f"[embed-server-venv] OK model={es._model_info['model']} "
+      f"dim={vec.shape[1]} device={es._model_info['device']}")
+PY
+
+echo "[embed-server-venv] 完成。下一步：./bin/redeploy-daemons embed_server -f"

@@ -1,0 +1,118 @@
+{
+  "task_name": "樣品開發費用計算與報表統計",
+  "video_summary": "設定開發材料參數並彙總採購與領料數據，計算各客戶樣品開發成本並產出報表。",
+  "erp_name": "FAST ERP",
+  "prerequisites": "已登入系統，且開發材料之採購單（調料單）或領料單已建立，並有正確的材料報價。",
+  "menu_path": "主選單 → 開發管理 → 開發費用計算",
+  "steps": [
+    {
+      "n": 1,
+      "action": "click",
+      "target_description": "畫面中間上方的「開發費用項目」分頁標籤",
+      "visual_cue": "開發費用項目",
+      "why": "切換至明細項目錄入介面以匯入系統資料"
+    },
+    {
+      "n": 2,
+      "action": "click",
+      "target_description": "畫面右側的「分攤金額匯入」按鈕",
+      "visual_cue": "分攤金額匯入 (綠色文字按鈕)",
+      "why": "從系統匯入指定期間的直接與間接材料費用資料"
+    },
+    {
+      "n": 3,
+      "action": "select",
+      "target_description": "彈出視窗中的「帳本編號」與「會計期間」",
+      "visual_cue": "帳本編號、會計期間 欄位",
+      "example_value": "會計期間: 202211",
+      "why": "指定要計算費用的時間範圍"
+    },
+    {
+      "n": 4,
+      "action": "click",
+      "target_description": "彈出視窗下方的「確定」按鈕",
+      "visual_cue": "確定",
+      "why": "執行資料匯入"
+    },
+    {
+      "n": 5,
+      "action": "fill",
+      "target_description": "表格中「人工成本」或「管銷費用」行的「金額」欄位",
+      "visual_cue": "金額 欄位",
+      "example_value": "200000",
+      "why": "手動輸入無法從材料單據自動抓取的固定成本"
+    },
+    {
+      "n": 6,
+      "action": "select",
+      "target_description": "手動輸入項目的「分攤方式」下拉選單",
+      "visual_cue": "分攤方式",
+      "example_value": "5. 比率分攤",
+      "why": "設定該筆費用如何分配給不同的開發客戶"
+    },
+    {
+      "n": 7,
+      "action": "click",
+      "target_description": "畫面左上方的「費用彙總計算」分頁標籤",
+      "visual_cue": "費用彙總計算",
+      "why": "返回彙總主頁面執行最終結算"
+    },
+    {
+      "n": 8,
+      "action": "click",
+      "target_description": "畫面中間上方的「開發費用彙總計算」按鈕",
+      "visual_cue": "開發費用彙總計算 (綠色文字按鈕)",
+      "why": "根據設定好的分攤邏輯計算各客戶的總開發費用"
+    },
+    {
+      "n": 9,
+      "action": "select",
+      "target_description": "彈出視窗中的計算期間並點擊確定",
+      "visual_cue": "確定",
+      "why": "確認執行彙總"
+    },
+    {
+      "n": 10,
+      "action": "click",
+      "target_description": "畫面右側的「開發費用統計明細表」按鈕",
+      "visual_cue": "開發費用統計明細表",
+      "why": "產出正式的成本分析報表"
+    }
+  ],
+  "fields_schema": {
+    "帳本編號": {
+      "type": "string",
+      "required": true,
+      "example": "C16"
+    },
+    "會計期間": {
+      "type": "string",
+      "required": true,
+      "example": "202211"
+    },
+    "金額": {
+      "type": "number",
+      "required": false,
+      "notes": "用於人工成本或管銷費用等手動項"
+    },
+    "分攤方式": {
+      "type": "enum",
+      "required": true,
+      "example": "5. 比率分攤",
+      "notes": "包含直接歸屬、領用歸屬、完工數量、完工係數、比率分攤"
+    }
+  },
+  "validation": "點擊彙總計算後，下方表格會顯示各客戶代號對應的直接材料、間接材料及人工費用金額；點擊報表按鈕後會開啟 PDF 或列印預覽視窗。",
+  "common_pitfalls": [
+    "若材料報價（採購單價）未設定，系統抓取的金額會是 0，導致費用計算不準確。",
+    "分攤方式若選擇「比率分攤」，必須先在「客戶佔比」設定中填好比例，否則金額無法拆分。"
+  ],
+  "narrator_tips": [
+    "「主料」通常設為「直接歸屬」，會根據樣品單指定的客戶直接計入費用。",
+    "「共用材料」建議設為「領用歸屬」，採倒推方式按實際領用量分攤。",
+    "人工成本若要精確，可依據各客戶開發佔比手動調整分攤比率。"
+  ],
+  "_video_name": "樣品開發費用操作教學.mp4",
+  "_video_path": "開發部教學",
+  "_video_index": 4
+}

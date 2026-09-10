@@ -1,0 +1,169 @@
+{
+  "task_name": "樣品開發全流程管理",
+  "video_summary": "涵蓋樣品單維護、材料編碼、完工出貨、客戶確認、稅率調整及開發成本彙總計算，提供完整的樣品開發全流程操作與財務結算指南。",
+  "erp_name": "FAST ERP (Oracle Forms / Fu Chun Corporation)",
+  "source_videos": [
+    "8.15樣單補用量&加工材料建立.mp4",
+    "8.24樣品完工.出貨&客戶DN.mp4",
+    "9.1樣品單變更流程與操作說明.mp4",
+    "樣品開發費用操作教學.mp4",
+    "樣品開發費用操作教學_問答.mp4"
+  ],
+  "prerequisites": "用戶已登入系統；樣品單已建立或處於開發階段；相關材料報價與採購領用數據已錄入。",
+  "menu_path": "導航選單 → 開發管理 / 樣品管理",
+  "steps": [
+    {
+      "n": 1,
+      "action": "click",
+      "target_description": "『開發料品編碼建立』功能",
+      "visual_cue": "文字按鈕",
+      "why": "在建立樣品單前，需先維護材料的多語系（越南文、英文）基本資料。"
+    },
+    {
+      "n": 2,
+      "action": "click",
+      "target_description": "『樣品單建立/查詢』功能並使用望遠鏡圖示",
+      "visual_cue": "Flashlight icon",
+      "why": "定位特定的型體或樣品單據進行後續維護。"
+    },
+    {
+      "n": 3,
+      "action": "click",
+      "target_description": "『用料修改 F4』按鈕（若單據已生效）",
+      "visual_cue": "文字標籤『用料修改F4』",
+      "why": "解除生效狀態的編輯鎖定，以允許修改材料細項與用量。"
+    },
+    {
+      "n": 4,
+      "action": "fill",
+      "target_description": "樣品單明細中的『用量』、『料號』與『調料類別』",
+      "visual_cue": "表格儲存格，料號需雙擊開啟查詢視窗",
+      "example_value": "用量：90, 類別：調本料",
+      "why": "定義樣品各部位所需材料及其精確消耗量。"
+    },
+    {
+      "n": 5,
+      "action": "click",
+      "target_description": "『版次升級』按鈕",
+      "visual_cue": "綠色底按鈕",
+      "why": "若單據已轉採購或彙總，需升級版次以保留歷史紀錄並同步更新後端數據。"
+    },
+    {
+      "n": 6,
+      "action": "fill",
+      "target_description": "『樣品單完工回報』中的日期、類別（面部/整雙）與數量",
+      "visual_cue": "完工日期、回報類別 label",
+      "why": "按階段記錄樣品生產進度，必須先有面部回報才能執行整雙回報。"
+    },
+    {
+      "n": 7,
+      "action": "fill",
+      "target_description": "『樣品單入庫/出貨』的出貨方式、單價與單據選取",
+      "visual_cue": "選擇樣品單 按鈕",
+      "why": "完成樣品寄送流程，並設定報關與對客報價。"
+    },
+    {
+      "n": 8,
+      "action": "select",
+      "target_description": "『內部/客戶確認』中的確認結果與不良原因",
+      "visual_cue": "Pass / NG 下拉選單",
+      "why": "記錄客戶反饋；若為 NG，系統將自動產生新版序供重打樣使用。"
+    },
+    {
+      "n": 9,
+      "action": "click",
+      "target_description": "『進貨明細表建立』中的『單價修改』按鈕",
+      "visual_cue": "灰色長方形按鈕",
+      "why": "輸入修改原因後，手動調整越南頻繁變動的稅率（如 5% 或 8%）。"
+    },
+    {
+      "n": 10,
+      "action": "fill",
+      "target_description": "『客戶 DN/CN 建立』的費用項目與金額",
+      "visual_cue": "類別選擇：其他費用",
+      "why": "建立不掛樣品單的運費或其他雜項費用請款。"
+    },
+    {
+      "n": 11,
+      "action": "click",
+      "target_description": "『開發費用計算』中的『分攤金額匯入』與『費用彙總計算』",
+      "visual_cue": "綠色文字按鈕",
+      "why": "匯入材料成本，並按比例或領用量將人工、管銷費用分攤至各客戶。"
+    },
+    {
+      "n": 12,
+      "action": "click",
+      "target_description": "『開發費用統計明細表』",
+      "visual_cue": "報表按鈕",
+      "why": "產出最終的開發成本分析報表供財務與管理層核對。"
+    }
+  ],
+  "fields_schema": {
+    "型體": {
+      "type": "string",
+      "required": true,
+      "example": "F1959",
+      "notes": "鞋款編號"
+    },
+    "用量": {
+      "type": "number",
+      "required": true,
+      "example": "90.0000",
+      "notes": "精確到小數點後四位"
+    },
+    "料號": {
+      "type": "string",
+      "required": true,
+      "notes": "雙擊開啟查詢視窗，應選擇下半部帶顏色的子材料"
+    },
+    "本地文1名稱": {
+      "type": "string",
+      "required": true,
+      "example": "vải gia cố",
+      "notes": "材料越南文名稱"
+    },
+    "完工日期": {
+      "type": "date",
+      "required": true,
+      "example": "2022/08/24"
+    },
+    "確認結果": {
+      "type": "enum",
+      "required": true,
+      "values": [
+        "Pass",
+        "NG"
+      ]
+    },
+    "稅率": {
+      "type": "number",
+      "required": true,
+      "example": "8",
+      "notes": "需先點擊單價修改按鈕方可編輯"
+    },
+    "會計期間": {
+      "type": "string",
+      "required": true,
+      "example": "202211"
+    },
+    "分攤方式": {
+      "type": "enum",
+      "required": true,
+      "example": "5. 比率分攤",
+      "notes": "包含直接歸屬、領用歸屬、完工數量、比率分攤等"
+    }
+  },
+  "validation": "1. 儲存時左下角顯示『資料儲存完成』。 2. 版次升級後單號序號應自動更新。 3. 出貨執行後庫存應正確扣帳。 4. 費用彙總後報表應能預覽 PDF。",
+  "common_pitfalls": [
+    "未點擊『用料修改』或『單價修改』按鈕導致欄位唯讀鎖定。",
+    "完工回報跳過『面部』直接做『整雙』會導致數據異常。",
+    "若材料報價為 0，費用計算將無法反映真實成本。",
+    "NG 生效後若未檢查新版序單據，可能在舊單重複作業。"
+  ],
+  "narrator_tips": [
+    "越南端開發重點在於單位用量與多語系名稱的維護。",
+    "針對越南稅率變動，應依實際發票在進貨明細中手動校正。",
+    "雜項運費建議在 DN/CN 備註欄註明樣品批次，方便財務沖帳。",
+    "費用分攤前需先在『客戶佔比』功能設定好比率。"
+  ]
+}
