@@ -24,7 +24,7 @@ ddgs==9.14.4
 youtube-transcript-api==1.2.4
 yt-dlp==2026.7.4
 pydantic>=2.13.4
-cryptography>=50.0.0
+cryptography>=50.0.1
 matplotlib==3.11.1
 pandas==2.3.3
 pyarrow==25.0.0
